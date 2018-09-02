@@ -15,12 +15,14 @@ func NewLocal(path string) *local {
 }
 
 func (l *local) Store(c config.Config) error {
-	err := os.MkdirAll(l.path, os.ModePerm)
+	basePath := l.path + "/" + c.Group + "/"
+
+	err := os.MkdirAll(basePath, os.ModePerm)
 	if err != nil {
 		return err
 	}
 
-	file, err := os.OpenFile(l.path+c.Id+".json", os.O_CREATE|os.O_WRONLY, 0644)
+	file, err := os.OpenFile(basePath+c.Id+".json", os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
 	}
@@ -32,9 +34,9 @@ func storeJson(file *os.File, c config.Config) error {
 	return json.NewEncoder(file).Encode(c)
 }
 
-func (l *local) Retrieve(id string) (*config.Config, error) {
+func (l *local) Retrieve(id string, group string) (*config.Config, error) {
 
-	file, err := os.OpenFile(l.path+id+".json", os.O_CREATE|os.O_RDONLY, 0644)
+	file, err := os.OpenFile(l.path+"/"+group+"/"+id+".json", os.O_CREATE|os.O_RDONLY, 0644)
 	if err != nil {
 		return nil, err
 	}

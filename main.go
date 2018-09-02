@@ -14,17 +14,18 @@ func main() {
 		Id:           "someId",
 		Name:         "someOtherName",
 		LastModified: time.Now(),
+		Group:        "testGroup",
 		Properties:   []byte(`{"num":6.13,"strs":["a","b"]}`),
 	}
 
-	local := persistence.NewLocal("test/")
+	local := persistence.NewLocal("test")
 
 	err := local.Store(conf)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	conf2, err := local.Retrieve("someId")
+	conf2, err := local.Retrieve("someId", "testGroup")
 	if err != nil {
 		log.Fatal(err)
 	}
