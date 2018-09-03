@@ -1,36 +1,27 @@
 package main
 
 import (
-	"github.com/larwef/ki/config"
 	"github.com/larwef/ki/config/persistence"
+	"github.com/larwef/ki/controller"
 	"log"
+	"net/http"
 	"time"
 )
 
 func main() {
-	log.Println("Starting...")
+	log.Println("Starting application...")
 
-	conf := config.Config{
-		Id:           "someId",
-		Name:         "someOtherName",
-		LastModified: time.Now(),
-		Group:        "testGroup",
-		Properties:   []byte(`{"num":6.13,"strs":["a","b"]}`),
+	server := http.Server{
+		Addr:         ":8080",
+		Handler:      controller.NewBaseHttpHandler(persistence.NewLocal("testDir")),
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
 	}
 
-	local := persistence.NewLocal("test")
-
-	err := local.Store(conf)
-	if err != nil {
-		log.Fatal(err)
+	log.Printf("Starting server on %s\n", server.Addr)
+	if err := server.ListenAndServe(); err != nil {
+		log.Fatalf("Error: %v", err)
 	}
-
-	conf2, err := local.Retrieve("someId", "testGroup")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	log.Println(conf2)
 
 	log.Println("Exiting application.")
 }

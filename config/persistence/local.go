@@ -36,7 +36,7 @@ func storeJson(file *os.File, c config.Config) error {
 
 func (l *local) Retrieve(id string, group string) (*config.Config, error) {
 
-	file, err := os.OpenFile(l.path+"/"+group+"/"+id+".json", os.O_CREATE|os.O_RDONLY, 0644)
+	file, err := os.OpenFile(l.path+"/"+group+"/"+id+".json", os.O_RDONLY, 0644)
 	if err != nil {
 		return nil, err
 	}
