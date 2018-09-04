@@ -36,6 +36,10 @@ func (b *BaseHttpHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) 
 	}
 }
 
+func emptyHandler() http.Handler {
+	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {})
+}
+
 // ShiftPath splits off the first component of p, which will be cleaned of
 // relative components before processing. head will never contain a slash and
 // tail will always be a rooted path without trailing slash.

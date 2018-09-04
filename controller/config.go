@@ -2,7 +2,6 @@ package controller
 
 import (
 	"encoding/json"
-	"errors"
 	"github.com/larwef/ki/config"
 	"github.com/larwef/ki/config/persistence"
 	"log"
@@ -18,92 +17,98 @@ func (c *configHandler) handleConfig(res http.ResponseWriter, req *http.Request)
 
 	switch req.Method {
 	case http.MethodPut:
-		c.handlePut(res, req)
+		c.handlePut().ServeHTTP(res, req)
 	case http.MethodGet:
-		c.handleGet(res, req)
+		c.handleGet().ServeHTTP(res, req)
 	default:
 		http.Error(res, "Method Not Allowed", http.StatusMethodNotAllowed)
 	}
 }
 
-func (c *configHandler) handlePut(res http.ResponseWriter, req *http.Request) {
+func (c *configHandler) handlePut() http.Handler {
 	log.Println("PUT invoked")
-	res.Header().Set("Content-Type", "application/json; charset=utf-8")
-
-	group, id, err := getPathVariables(req.URL.Path)
-	if err != nil {
-		http.Error(res, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	var conf config.Config
-
-	err = json.NewDecoder(req.Body).Decode(&conf)
-	if err != nil {
-		log.Printf("Error: %v", err)
-		http.Error(res, "Unable to unmarshal request object", http.StatusInternalServerError)
-		return
-	}
-	defer req.Body.Close()
-
-	conf.Id = id
-	conf.Group = group
-
-	err = c.persistence.Store(conf)
-	if err != nil {
-		log.Printf("Error: %v", err)
-		http.Error(res, "Error persisting  request object", http.StatusInternalServerError)
-		return
-	}
-
-	newConf, err := c.persistence.Retrieve(group, id)
-	if err != nil {
-		log.Printf("Error: %v", err)
-		http.Error(res, "Not Found", http.StatusNotFound)
-		return
-	}
-
-	err = json.NewEncoder(res).Encode(newConf)
-	if err != nil {
-		log.Printf("Error: %v", err)
-		http.Error(res, "Error marshalling response", http.StatusInternalServerError)
-		return
-	}
+	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+		configPathValidator(setCommonHeaders(c.putConfig(c.getConfig(emptyHandler())))).ServeHTTP(res, req)
+	})
 }
 
-func (c *configHandler) handleGet(res http.ResponseWriter, req *http.Request) {
+func (c *configHandler) handleGet() http.Handler {
 	log.Println("GET invoked")
-	res.Header().Set("Content-Type", "application/json; charset=utf-8")
-
-	group, id, err := getPathVariables(req.URL.Path)
-	if err != nil {
-		http.Error(res, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	conf, err := c.persistence.Retrieve(group, id)
-	if err != nil {
-		log.Printf("Error: %v", err)
-		http.Error(res, "Not Found", http.StatusNotFound)
-		return
-	}
-
-	err = json.NewEncoder(res).Encode(conf)
-	if err != nil {
-		log.Printf("Error: %v", err)
-		http.Error(res, "Error marshalling response", http.StatusInternalServerError)
-		return
-	}
+	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+		configPathValidator(setCommonHeaders(c.getConfig(emptyHandler()))).ServeHTTP(res, req)
+	})
 }
 
-func getPathVariables(url string) (string, string, error) {
-	var id, group string
+func (c *configHandler) putConfig(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+		var conf config.Config
+
+		if err := json.NewDecoder(req.Body).Decode(&conf); err != nil {
+			log.Printf("Error: %v", err)
+			http.Error(res, "Unable to unmarshal request object", http.StatusInternalServerError)
+			return
+		}
+
+		defer req.Body.Close()
+
+		conf.Group, conf.Id, _ = getPathVariables(req.URL.Path)
+
+		if err := c.persistence.Store(conf); err != nil {
+			log.Printf("Error: %v", err)
+			http.Error(res, "Error persisting request object", http.StatusInternalServerError)
+			return
+		}
+
+		h.ServeHTTP(res, req)
+	})
+}
+
+func (c *configHandler) getConfig(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+		group, id, _ := getPathVariables(req.URL.Path)
+
+		var conf *config.Config
+		var err error
+		if conf, err = c.persistence.Retrieve(group, id); err != nil {
+			log.Printf("Error: %v", err)
+			http.Error(res, "Not Found", http.StatusNotFound)
+			return
+		}
+
+		if err = json.NewEncoder(res).Encode(conf); err != nil {
+			log.Printf("Error: %v", err)
+			http.Error(res, "Error marshalling response", http.StatusInternalServerError)
+			return
+		}
+	})
+}
+
+func setCommonHeaders(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+		res.Header().Set("Content-Type", "application/json; charset=utf-8")
+
+		h.ServeHTTP(res, req)
+	})
+}
+
+func configPathValidator(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+		group, id, remainder := getPathVariables(req.URL.Path)
+
+		if group == "" || id == "" || remainder != "/" {
+			http.Error(res, "Invalid path", http.StatusBadRequest)
+			return
+		}
+
+		h.ServeHTTP(res, req)
+	})
+}
+
+// TODO: Generalize?
+func getPathVariables(url string) (string, string, string) {
+	var group, id string
 	group, url = shiftPath(url)
 	id, url = shiftPath(url)
 
-	if group == "" || id == "" || url != "/" {
-		return "", "", errors.New("invalid path")
-	}
-
-	return group, id, nil
+	return group, id, url
 }
