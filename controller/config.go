@@ -12,37 +12,42 @@ type configHandler struct {
 	persistence persistence.Persistence
 }
 
-func (c *configHandler) handleConfig(res http.ResponseWriter, req *http.Request) {
-	log.Printf("Config invoked")
-
-	switch req.Method {
-	case http.MethodPut:
-		c.handlePut().ServeHTTP(res, req)
-	case http.MethodGet:
-		c.handleGet().ServeHTTP(res, req)
-	default:
-		http.Error(res, "Method Not Allowed", http.StatusMethodNotAllowed)
-	}
+func (c *configHandler) handleConfig(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+		log.Printf("Config invoked")
+		switch req.Method {
+		case http.MethodPut:
+			newHandlerChain(h).
+				add(configPathValidator).
+				add(setCommonHeaders).
+				add(c.handlePut).
+				ServeHTTP(res, req)
+		case http.MethodGet:
+			newHandlerChain(h).
+				add(configPathValidator).
+				add(setCommonHeaders).
+				add(c.handleGet).
+				ServeHTTP(res, req)
+		default:
+			http.Error(res, "Method Not Allowed", http.StatusMethodNotAllowed)
+		}
+	})
 }
 
-func (c *configHandler) handlePut() http.Handler {
-	log.Println("PUT invoked")
+func (c *configHandler) handlePut(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		newHandlerChain().
-			add(configPathValidator).
-			add(setCommonHeaders).
+		log.Println("PUT invoked")
+		newHandlerChain(h).
 			add(c.storeConfig).
 			add(c.retrieveConfig).
 			ServeHTTP(res, req)
 	})
 }
 
-func (c *configHandler) handleGet() http.Handler {
-	log.Println("GET invoked")
+func (c *configHandler) handleGet(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		newHandlerChain().
-			add(configPathValidator).
-			add(setCommonHeaders).
+		log.Println("GET invoked")
+		newHandlerChain(h).
 			add(c.retrieveConfig).
 			ServeHTTP(res, req)
 	})
