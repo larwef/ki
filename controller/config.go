@@ -28,18 +28,27 @@ func (c *configHandler) handleConfig(res http.ResponseWriter, req *http.Request)
 func (c *configHandler) handlePut() http.Handler {
 	log.Println("PUT invoked")
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		configPathValidator(setCommonHeaders(c.putConfig(c.getConfig(emptyHandler())))).ServeHTTP(res, req)
+		newHandlerChain().
+			add(configPathValidator).
+			add(setCommonHeaders).
+			add(c.storeConfig).
+			add(c.retrieveConfig).
+			ServeHTTP(res, req)
 	})
 }
 
 func (c *configHandler) handleGet() http.Handler {
 	log.Println("GET invoked")
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		configPathValidator(setCommonHeaders(c.getConfig(emptyHandler()))).ServeHTTP(res, req)
+		newHandlerChain().
+			add(configPathValidator).
+			add(setCommonHeaders).
+			add(c.retrieveConfig).
+			ServeHTTP(res, req)
 	})
 }
 
-func (c *configHandler) putConfig(h http.Handler) http.Handler {
+func (c *configHandler) storeConfig(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 		var conf config.Config
 
@@ -63,7 +72,7 @@ func (c *configHandler) putConfig(h http.Handler) http.Handler {
 	})
 }
 
-func (c *configHandler) getConfig(h http.Handler) http.Handler {
+func (c *configHandler) retrieveConfig(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 		group, id, _ := getPathVariables(req.URL.Path)
 
@@ -80,6 +89,7 @@ func (c *configHandler) getConfig(h http.Handler) http.Handler {
 			http.Error(res, "Error marshalling response", http.StatusInternalServerError)
 			return
 		}
+		h.ServeHTTP(res, req)
 	})
 }
 
