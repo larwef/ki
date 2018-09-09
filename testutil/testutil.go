@@ -2,7 +2,6 @@ package testutil
 
 import (
 	"encoding/json"
-	"github.com/larwef/lunchlambda/testutil"
 	"io/ioutil"
 	"os"
 	"reflect"
@@ -21,10 +20,10 @@ func GetTestFileAsString(t *testing.T, filepath string) string {
 // UnmarshalJsonFromFile unmarshals from a json file to interface v
 func UnmarshalJsonFromFile(t *testing.T, filepath string, v interface{}) {
 	file, err := os.OpenFile(filepath, os.O_RDONLY, 0644)
-	testutil.AssertNotError(t, err)
+	AssertNotError(t, err)
 
 	err = json.NewDecoder(file).Decode(&v)
-	testutil.AssertNotError(t, err)
+	AssertNotError(t, err)
 }
 
 // AssertNotError asserts if an error equals nil or fails the test
