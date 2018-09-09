@@ -17,8 +17,8 @@ func GetTestFileAsString(t *testing.T, filepath string) string {
 	return string(b)
 }
 
-// UnmarshalJsonFromFile unmarshals from a json file to interface v
-func UnmarshalJsonFromFile(t *testing.T, filepath string, v interface{}) {
+// UnmarshalJSONFromFile unmarshals from a json file to interface v
+func UnmarshalJSONFromFile(t *testing.T, filepath string, v interface{}) {
 	file, err := os.OpenFile(filepath, os.O_RDONLY, 0644)
 	AssertNotError(t, err)
 
@@ -40,8 +40,8 @@ func AssertEqual(t *testing.T, actual interface{}, expected interface{}) {
 	}
 }
 
-// AssertJSONSEqual asserts two json strings for equality by unmarshalling them to account for formatting.
-func AssertJsonEqual(t *testing.T, json1 string, json2 string) {
+// AssertJSONEqual asserts two json strings for equality by unmarshalling them to account for formatting.
+func AssertJSONEqual(t *testing.T, json1 string, json2 string) {
 	var o1 interface{}
 	var o2 interface{}
 

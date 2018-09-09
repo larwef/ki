@@ -14,7 +14,7 @@ func main() {
 
 	server := http.Server{
 		Addr:         ":8080",
-		Handler:      controller.NewBaseHttpHandler(persistence.NewLocal("testDir")),
+		Handler:      controller.NewBaseHTTPHandler(persistence.NewLocal("testDir")),
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}

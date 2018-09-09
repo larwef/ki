@@ -16,7 +16,7 @@ func TestBaseHttpHandler_InvalidPath(t *testing.T) {
 	}
 
 	res := httptest.NewRecorder()
-	handler := NewBaseHttpHandler(persistence.NewMock(config.Config{}))
+	handler := NewBaseHTTPHandler(persistence.NewMock(config.Config{}))
 
 	handler.ServeHTTP(res, req)
 

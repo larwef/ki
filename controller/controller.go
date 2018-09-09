@@ -13,17 +13,19 @@ const (
 	configPath = "config"
 )
 
-type baseHttpHandler struct {
+// BaseHTTPHandler handles is the entry point for requests and handles initial routing
+type BaseHTTPHandler struct {
 	configHandler *configHandler
 }
 
-func NewBaseHttpHandler(persistence persistence.Persistence) *baseHttpHandler {
-	return &baseHttpHandler{
+// NewBaseHTTPHandler returns a new BaseHTTPHandler
+func NewBaseHTTPHandler(persistence persistence.Persistence) *BaseHTTPHandler {
+	return &BaseHTTPHandler{
 		configHandler: &configHandler{persistence: persistence},
 	}
 }
 
-func (b *baseHttpHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
+func (b *BaseHTTPHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	var head string
 	head, req.URL.Path = shiftPath(req.URL.Path)
 

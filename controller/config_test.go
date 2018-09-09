@@ -17,7 +17,7 @@ func TestConfigHandler_InvalidMethod(t *testing.T) {
 	}
 
 	res := httptest.NewRecorder()
-	handler := NewBaseHttpHandler(persistence.NewMock(config.Config{}))
+	handler := NewBaseHTTPHandler(persistence.NewMock(config.Config{}))
 
 	handler.ServeHTTP(res, req)
 
@@ -33,16 +33,16 @@ func TestConfigHandler_HandleGet(t *testing.T) {
 	}
 
 	var c config.Config
-	testutil.UnmarshalJsonFromFile(t, "../testdata/configExample.json", &c)
+	testutil.UnmarshalJSONFromFile(t, "../testdata/configExample.json", &c)
 
 	res := httptest.NewRecorder()
-	handler := NewBaseHttpHandler(persistence.NewMock(c))
+	handler := NewBaseHTTPHandler(persistence.NewMock(c))
 
 	handler.ServeHTTP(res, req)
 
 	testutil.AssertEqual(t, res.Code, http.StatusOK)
 	testutil.AssertEqual(t, res.Header().Get("Content-Type"), "application/json; charset=utf-8")
-	testutil.AssertJsonEqual(t, res.Body.String(), testutil.GetTestFileAsString(t, "../testdata/configExample.json"))
+	testutil.AssertJSONEqual(t, res.Body.String(), testutil.GetTestFileAsString(t, "../testdata/configExample.json"))
 }
 
 func TestConfigHandler_HandlePut(t *testing.T) {
@@ -55,11 +55,11 @@ func TestConfigHandler_HandlePut(t *testing.T) {
 	}
 
 	res := httptest.NewRecorder()
-	handler := NewBaseHttpHandler(persistence.NewMock(config.Config{}))
+	handler := NewBaseHTTPHandler(persistence.NewMock(config.Config{}))
 
 	handler.ServeHTTP(res, req)
 
 	testutil.AssertEqual(t, res.Code, http.StatusOK)
 	testutil.AssertEqual(t, res.Header().Get("Content-Type"), "application/json; charset=utf-8")
-	testutil.AssertJsonEqual(t, res.Body.String(), testutil.GetTestFileAsString(t, "../testdata/storedConfigExample.json"))
+	testutil.AssertJSONEqual(t, res.Body.String(), testutil.GetTestFileAsString(t, "../testdata/storedConfigExample.json"))
 }

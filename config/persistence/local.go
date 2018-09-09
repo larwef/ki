@@ -6,15 +6,18 @@ import (
 	"os"
 )
 
-type local struct {
+// Local representa a local storge object
+type Local struct {
 	path string
 }
 
-func NewLocal(path string) *local {
-	return &local{path: path}
+// NewLocal returns a new Local storage object
+func NewLocal(path string) *Local {
+	return &Local{path: path}
 }
 
-func (l *local) Store(c config.Config) error {
+// Store stores a config in the local storage
+func (l *Local) Store(c config.Config) error {
 	basePath := l.path + "/" + c.Group + "/"
 
 	err := os.MkdirAll(basePath, os.ModePerm)
@@ -22,19 +25,20 @@ func (l *local) Store(c config.Config) error {
 		return err
 	}
 
-	file, err := os.OpenFile(basePath+c.Id+".json", os.O_CREATE|os.O_WRONLY, 0644)
+	file, err := os.OpenFile(basePath+c.ID+".json", os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
 	}
 
-	return storeJson(file, c)
+	return storeJSON(file, c)
 }
 
-func storeJson(file *os.File, c config.Config) error {
+func storeJSON(file *os.File, c config.Config) error {
 	return json.NewEncoder(file).Encode(c)
 }
 
-func (l *local) Retrieve(group string, id string) (*config.Config, error) {
+// Retrieve retrieves a config from the local storage
+func (l *Local) Retrieve(group string, id string) (*config.Config, error) {
 
 	file, err := os.OpenFile(l.path+"/"+group+"/"+id+".json", os.O_RDONLY, 0644)
 	if err != nil {
@@ -42,11 +46,11 @@ func (l *local) Retrieve(group string, id string) (*config.Config, error) {
 	}
 
 	var c config.Config
-	err = retrieveJson(file, &c)
+	err = retrieveJSON(file, &c)
 	return &c, err
 
 }
 
-func retrieveJson(file *os.File, c *config.Config) error {
+func retrieveJSON(file *os.File, c *config.Config) error {
 	return json.NewDecoder(file).Decode(&c)
 }

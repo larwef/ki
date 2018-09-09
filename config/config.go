@@ -5,8 +5,9 @@ import (
 	"time"
 )
 
+// Config represents a config resource
 type Config struct {
-	Id           string          `json:"id"`
+	ID           string          `json:"id"`
 	Name         string          `json:"name"`
 	LastModified time.Time       `json:"lastModified"`
 	Version      int             `json:"version"`

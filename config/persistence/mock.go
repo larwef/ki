@@ -5,21 +5,25 @@ import (
 	"github.com/pkg/errors"
 )
 
-type mock struct {
+// Mock is used for mocking an object implementing the persistence interface during testing
+type Mock struct {
 	storedConfig config.Config
 }
 
-func NewMock(config config.Config) *mock {
-	return &mock{storedConfig: config}
+// NewMock returns a Mock object for testing
+func NewMock(config config.Config) *Mock {
+	return &Mock{storedConfig: config}
 }
 
-func (l *mock) Store(c config.Config) error {
+// Store stores a config object in the mock
+func (l *Mock) Store(c config.Config) error {
 	l.storedConfig = c
 	return nil
 }
 
-func (l *mock) Retrieve(group string, id string) (*config.Config, error) {
-	if group != l.storedConfig.Group || id != l.storedConfig.Id {
+// Retrieve retrieves a config object from the mock
+func (l *Mock) Retrieve(group string, id string) (*config.Config, error) {
+	if group != l.storedConfig.Group || id != l.storedConfig.ID {
 		return nil, errors.New("Config not found")
 	}
 

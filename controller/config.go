@@ -65,7 +65,7 @@ func (c *configHandler) storeConfig(h http.Handler) http.Handler {
 
 		defer req.Body.Close()
 
-		conf.Group, conf.Id, _ = getPathVariables(req.URL.Path)
+		conf.Group, conf.ID, _ = getPathVariables(req.URL.Path)
 
 		if err := c.persistence.Store(conf); err != nil {
 			log.Printf("Error: %v", err)
