@@ -13,17 +13,17 @@ const (
 	configPath = "config"
 )
 
-type BaseHttpHandler struct {
+type baseHttpHandler struct {
 	configHandler *configHandler
 }
 
-func NewBaseHttpHandler(persistence persistence.Persistence) *BaseHttpHandler {
-	return &BaseHttpHandler{
+func NewBaseHttpHandler(persistence persistence.Persistence) *baseHttpHandler {
+	return &baseHttpHandler{
 		configHandler: &configHandler{persistence: persistence},
 	}
 }
 
-func (b *BaseHttpHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
+func (b *baseHttpHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	var head string
 	head, req.URL.Path = shiftPath(req.URL.Path)
 

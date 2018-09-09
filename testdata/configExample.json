@@ -1,0 +1,14 @@
+{
+  "id": "someId",
+  "name": "someName",
+  "lastModified": "2018-09-02T14:53:56.281992009+02:00",
+  "version": 0,
+  "group": "someGroup",
+  "properties": {
+    "property1": 12,
+    "property2": "12",
+    "property3": "someString",
+    "property4": "someOtherString",
+    "property5": 12.1
+  }
+}
