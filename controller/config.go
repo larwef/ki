@@ -14,7 +14,6 @@ type configHandler struct {
 
 func (c *configHandler) handleConfig(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		log.Printf("Config invoked")
 		switch req.Method {
 		case http.MethodPut:
 			newHandlerChain(h).
@@ -36,7 +35,6 @@ func (c *configHandler) handleConfig(h http.Handler) http.Handler {
 
 func (c *configHandler) handlePut(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		log.Println("PUT invoked")
 		newHandlerChain(h).
 			add(c.storeConfig).
 			add(c.retrieveConfig).
@@ -46,7 +44,6 @@ func (c *configHandler) handlePut(h http.Handler) http.Handler {
 
 func (c *configHandler) handleGet(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		log.Println("GET invoked")
 		newHandlerChain(h).
 			add(c.retrieveConfig).
 			ServeHTTP(res, req)

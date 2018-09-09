@@ -25,6 +25,7 @@ func NewBaseHTTPHandler(persistence persistence.Persistence) *BaseHTTPHandler {
 	}
 }
 
+// TODO: Add inOut logging
 func (b *BaseHTTPHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	var head string
 	head, req.URL.Path = shiftPath(req.URL.Path)
