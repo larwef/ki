@@ -3,14 +3,13 @@ package controller
 import (
 	"encoding/json"
 	"github.com/larwef/ki/config"
-	"github.com/larwef/ki/config/persistence"
 	"log"
 	"net/http"
 	"time"
 )
 
 type configHandler struct {
-	persistence persistence.Persistence
+	configRepo config.Repository
 }
 
 func (c *configHandler) handleConfig(h http.Handler) http.Handler {
@@ -66,7 +65,7 @@ func (c *configHandler) storeConfig(h http.Handler) http.Handler {
 		conf.Group, conf.ID, _ = getPathVariables(req.URL.Path)
 		conf.LastModified = time.Now()
 
-		if err := c.persistence.Store(conf); err != nil {
+		if err := c.configRepo.Store(conf); err != nil {
 			log.Printf("Error: %v", err)
 			http.Error(res, "Error persisting request object", http.StatusInternalServerError)
 			return
@@ -82,7 +81,7 @@ func (c *configHandler) retrieveConfig(h http.Handler) http.Handler {
 
 		var conf *config.Config
 		var err error
-		if conf, err = c.persistence.Retrieve(group, id); err != nil {
+		if conf, err = c.configRepo.Retrieve(group, id); err != nil {
 			log.Printf("Error: %v", err)
 			http.Error(res, "Not Found", http.StatusNotFound)
 			return

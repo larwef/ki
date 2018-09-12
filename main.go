@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/larwef/ki/config/persistence"
+	"github.com/larwef/ki/config"
 	"github.com/larwef/ki/controller"
 	"log"
 	"net/http"
@@ -14,7 +14,7 @@ func main() {
 
 	server := http.Server{
 		Addr:         ":8080",
-		Handler:      controller.NewBaseHTTPHandler(persistence.NewLocal("testDir")),
+		Handler:      controller.NewBaseHTTPHandler(config.NewLocal("testDir")),
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}

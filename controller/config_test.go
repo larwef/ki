@@ -3,7 +3,6 @@ package controller
 import (
 	"encoding/json"
 	"github.com/larwef/ki/config"
-	"github.com/larwef/ki/config/persistence"
 	"github.com/larwef/ki/testutil"
 	"net/http"
 	"net/http/httptest"
@@ -18,7 +17,7 @@ func TestConfigHandler_InvalidMethod(t *testing.T) {
 	}
 
 	res := httptest.NewRecorder()
-	handler := NewBaseHTTPHandler(persistence.NewMock(config.Config{}))
+	handler := NewBaseHTTPHandler(config.NewRepositoryMock(config.Config{}))
 
 	handler.ServeHTTP(res, req)
 
@@ -37,7 +36,7 @@ func TestConfigHandler_HandleGet(t *testing.T) {
 	testutil.UnmarshalJSONFromFile(t, "../testdata/configExample.json", &c)
 
 	res := httptest.NewRecorder()
-	handler := NewBaseHTTPHandler(persistence.NewMock(c))
+	handler := NewBaseHTTPHandler(config.NewRepositoryMock(c))
 
 	handler.ServeHTTP(res, req)
 
@@ -56,7 +55,7 @@ func TestConfigHandler_HandlePut(t *testing.T) {
 	}
 
 	res := httptest.NewRecorder()
-	handler := NewBaseHTTPHandler(persistence.NewMock(config.Config{}))
+	handler := NewBaseHTTPHandler(config.NewRepositoryMock(config.Config{}))
 
 	handler.ServeHTTP(res, req)
 

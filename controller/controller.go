@@ -2,7 +2,7 @@ package controller
 
 import (
 	"bytes"
-	"github.com/larwef/ki/config/persistence"
+	"github.com/larwef/ki/config"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -21,9 +21,9 @@ type BaseHTTPHandler struct {
 }
 
 // NewBaseHTTPHandler returns a new BaseHTTPHandler
-func NewBaseHTTPHandler(persistence persistence.Persistence) *BaseHTTPHandler {
+func NewBaseHTTPHandler(persistence config.Repository) *BaseHTTPHandler {
 	return &BaseHTTPHandler{
-		configHandler: &configHandler{persistence: persistence},
+		configHandler: &configHandler{configRepo: persistence},
 	}
 }
 

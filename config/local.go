@@ -1,8 +1,7 @@
-package persistence
+package config
 
 import (
 	"encoding/json"
-	"github.com/larwef/ki/config"
 	"os"
 )
 
@@ -17,7 +16,7 @@ func NewLocal(path string) *Local {
 }
 
 // Store stores a config in the local storage
-func (l *Local) Store(c config.Config) error {
+func (l *Local) Store(c Config) error {
 	basePath := l.path + "/" + c.Group + "/"
 
 	err := os.MkdirAll(basePath, os.ModePerm)
@@ -33,24 +32,24 @@ func (l *Local) Store(c config.Config) error {
 	return storeJSON(file, c)
 }
 
-func storeJSON(file *os.File, c config.Config) error {
+func storeJSON(file *os.File, c Config) error {
 	return json.NewEncoder(file).Encode(c)
 }
 
 // Retrieve retrieves a config from the local storage
-func (l *Local) Retrieve(group string, id string) (*config.Config, error) {
+func (l *Local) Retrieve(group string, id string) (*Config, error) {
 
 	file, err := os.OpenFile(l.path+"/"+group+"/"+id+".json", os.O_RDONLY, 0644)
 	if err != nil {
 		return nil, err
 	}
 
-	var c config.Config
+	var c Config
 	err = retrieveJSON(file, &c)
 	return &c, err
 
 }
 
-func retrieveJSON(file *os.File, c *config.Config) error {
+func retrieveJSON(file *os.File, c *Config) error {
 	return json.NewDecoder(file).Decode(&c)
 }

@@ -2,7 +2,6 @@ package controller
 
 import (
 	"github.com/larwef/ki/config"
-	"github.com/larwef/ki/config/persistence"
 	"github.com/larwef/ki/testutil"
 	"net/http"
 	"net/http/httptest"
@@ -16,7 +15,7 @@ func TestBaseHttpHandler_InvalidPath(t *testing.T) {
 	}
 
 	res := httptest.NewRecorder()
-	handler := NewBaseHTTPHandler(persistence.NewMock(config.Config{}))
+	handler := NewBaseHTTPHandler(config.NewRepositoryMock(config.Config{}))
 
 	handler.ServeHTTP(res, req)
 
