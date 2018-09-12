@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"encoding/json"
 	"github.com/larwef/ki/config"
 	"github.com/larwef/ki/config/persistence"
 	"github.com/larwef/ki/testutil"
@@ -61,5 +62,18 @@ func TestConfigHandler_HandlePut(t *testing.T) {
 
 	testutil.AssertEqual(t, res.Code, http.StatusOK)
 	testutil.AssertEqual(t, res.Header().Get("Content-Type"), "application/json; charset=utf-8")
-	testutil.AssertJSONEqual(t, res.Body.String(), testutil.GetTestFileAsString(t, "../testdata/storedConfigExample.json"))
+
+	var configRespone config.Config
+	err = json.NewDecoder(res.Body).Decode(&configRespone)
+	testutil.AssertNotError(t, err)
+
+	file, err = os.OpenFile("../testdata/storedConfigExample.json", os.O_RDONLY, 0644)
+	testutil.AssertNotError(t, err)
+	var configExpected config.Config
+	err = json.NewDecoder(file).Decode(&configExpected)
+	testutil.AssertNotError(t, err)
+
+	testutil.AssertEqual(t, configRespone.ID, configExpected.ID)
+	testutil.AssertEqual(t, configRespone.Name, configExpected.Name)
+	testutil.AssertEqual(t, configRespone.Group, configExpected.Group)
 }

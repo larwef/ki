@@ -6,6 +6,7 @@ import (
 	"github.com/larwef/ki/config/persistence"
 	"log"
 	"net/http"
+	"time"
 )
 
 type configHandler struct {
@@ -63,6 +64,7 @@ func (c *configHandler) storeConfig(h http.Handler) http.Handler {
 		defer req.Body.Close()
 
 		conf.Group, conf.ID, _ = getPathVariables(req.URL.Path)
+		conf.LastModified = time.Now()
 
 		if err := c.persistence.Store(conf); err != nil {
 			log.Printf("Error: %v", err)
