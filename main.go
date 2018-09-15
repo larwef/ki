@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/larwef/ki/config"
 	"github.com/larwef/ki/controller"
+	"github.com/larwef/ki/repository"
 	"log"
 	"net/http"
 	"time"
@@ -14,7 +14,7 @@ func main() {
 
 	server := http.Server{
 		Addr:         ":8080",
-		Handler:      controller.NewBaseHTTPHandler(config.NewLocal("testDir")),
+		Handler:      controller.NewBaseHTTPHandler(repository.NewLocal("testDir")),
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}
