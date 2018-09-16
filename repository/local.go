@@ -23,12 +23,12 @@ func (l *Local) StoreGroup(g Group) error {
 
 	err := os.MkdirAll(basePath, os.ModePerm)
 	if err != nil {
-		return err
+		return ErrInternal
 	}
 
 	file, err := os.OpenFile(basePath+g.ID+".json", os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		return err
+		return ErrInternal
 	}
 
 	return storeJSON(file, g)
@@ -59,12 +59,12 @@ func (l *Local) StoreConfig(c Config) error {
 
 	err = os.MkdirAll(basePath, os.ModePerm)
 	if err != nil {
-		return err
+		return ErrInternal
 	}
 
 	file, err := os.OpenFile(basePath+c.ID+".json", os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		return err
+		return ErrInternal
 	}
 
 	// TODO: There is a chance that the config will get created and storing the new group with config added will fail. Fix fix.

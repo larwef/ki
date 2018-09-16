@@ -90,7 +90,7 @@ func (c *configHandler) storeGroup(h http.Handler) http.Handler {
 
 		if err := c.repository.StoreGroup(grp); err != nil {
 			log.Printf("Error: %v", err)
-			http.Error(res, "Error persisting request object", http.StatusInternalServerError)
+			http.Error(res, err.Error(), err.(repository.Error).Code)
 			return
 		}
 
@@ -106,7 +106,7 @@ func (c *configHandler) retrieveGroup(h http.Handler) http.Handler {
 		var err error
 		if conf, err = c.repository.RetrieveGroup(grp); err != nil {
 			log.Printf("Error: %v", err)
-			http.Error(res, err.Error(), http.StatusNotFound)
+			http.Error(res, err.Error(), err.(repository.Error).Code)
 			return
 		}
 
@@ -137,8 +137,7 @@ func (c *configHandler) storeConfig(h http.Handler) http.Handler {
 
 		if err := c.repository.StoreConfig(conf); err != nil {
 			log.Printf("Error: %v", err)
-			// TODO: Perfect example for why a custom error type is needed. Here there are several errors which may have different http codes
-			http.Error(res, err.Error(), http.StatusNotFound)
+			http.Error(res, err.Error(), err.(repository.Error).Code)
 			return
 		}
 
@@ -154,7 +153,7 @@ func (c *configHandler) retrieveConfig(h http.Handler) http.Handler {
 		var err error
 		if conf, err = c.repository.RetrieveConfig(grp, id); err != nil {
 			log.Printf("Error: %v", err)
-			http.Error(res, err.Error(), http.StatusNotFound)
+			http.Error(res, err.Error(), err.(repository.Error).Code)
 			return
 		}
 
