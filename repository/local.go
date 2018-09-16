@@ -19,6 +19,7 @@ func NewLocal(path string) *Local {
 }
 
 // StoreGroup stores a config in the local storage
+// TODO: Shouldnt overwrite existing group
 func (l *Local) StoreGroup(g group.Group) error {
 	basePath := l.path + "/"
 
@@ -40,7 +41,7 @@ func (l *Local) RetrieveGroup(id string) (*group.Group, error) {
 
 	file, err := os.OpenFile(l.path+"/"+id+".json", os.O_RDONLY, 0644)
 	if err != nil {
-		return nil, err
+		return nil, ErrGroupNotFound
 	}
 
 	var g group.Group
@@ -69,6 +70,8 @@ func (l *Local) StoreConfig(c config.Config) error {
 	}
 
 	// TODO: There is a chance that the config will get created and storing the new group with config added will fail. Fix fix.
+	// TODO: Should not append if configID already exists
+	// TODO: Sort array?
 	grp.Configs = append(grp.Configs, c.ID)
 	if err := l.StoreGroup(*grp); err != nil {
 		log.Println("Failed persisting Group when new config was added. The config will most likely exist but not be added to Group config array.")
@@ -87,7 +90,7 @@ func (l *Local) RetrieveConfig(groupID string, id string) (*config.Config, error
 
 	file, err := os.OpenFile(l.path+"/"+groupID+"/"+id+".json", os.O_RDONLY, 0644)
 	if err != nil {
-		return nil, err
+		return nil, ErrConfigNotFound
 	}
 
 	var c config.Config
