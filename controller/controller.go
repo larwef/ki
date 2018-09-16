@@ -17,10 +17,8 @@ const (
 
 // BaseHTTPHandler handles is the entry point for requests and handles initial routing
 type BaseHTTPHandler struct {
-	repository repository.Repository
-
+	repository    repository.Repository
 	configHandler *configHandler
-	groupHandler  *groupHandler
 }
 
 // NewBaseHTTPHandler returns a new BaseHTTPHandler
@@ -28,7 +26,6 @@ func NewBaseHTTPHandler(repository repository.Repository) *BaseHTTPHandler {
 	return &BaseHTTPHandler{
 		repository:    repository,
 		configHandler: &configHandler{repository: repository},
-		groupHandler:  &groupHandler{repository: repository},
 	}
 }
 
@@ -44,7 +41,7 @@ func (b *BaseHTTPHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) 
 			//add(b.groupHandler.handleGroup).
 			ServeHTTP(res, req)
 	default:
-		log.Printf("Invalid path <%s> called", head)
+		log.Printf("Invalid path %q called", head)
 		http.Error(res, "Not Found", http.StatusNotFound)
 	}
 }

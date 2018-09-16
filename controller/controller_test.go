@@ -11,9 +11,7 @@ import (
 
 func TestBaseHttpHandler_InvalidPath(t *testing.T) {
 	req, err := http.NewRequest(http.MethodGet, "/invalidpath", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	testutil.AssertNotError(t, err)
 
 	res := httptest.NewRecorder()
 	handler := NewBaseHTTPHandler(&repository.Mock{StoredConfig: config.Config{}})

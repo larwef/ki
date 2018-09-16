@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/larwef/ki/config"
 	"github.com/larwef/ki/group"
+	"log"
 	"os"
 )
 
@@ -17,7 +18,7 @@ func NewLocal(path string) *Local {
 	return &Local{path: path}
 }
 
-// StorConfig stores a config in the local storage
+// StoreGroup stores a config in the local storage
 func (l *Local) StoreGroup(g group.Group) error {
 	basePath := l.path + "/"
 
@@ -34,7 +35,7 @@ func (l *Local) StoreGroup(g group.Group) error {
 	return storeJSON(file, g)
 }
 
-// RetrieveConfig retrieves a config from the local storage
+// RetrieveGroup retrieves a group from the local storage specified by id
 func (l *Local) RetrieveGroup(id string) (*group.Group, error) {
 
 	file, err := os.OpenFile(l.path+"/"+id+".json", os.O_RDONLY, 0644)
@@ -48,11 +49,16 @@ func (l *Local) RetrieveGroup(id string) (*group.Group, error) {
 
 }
 
-// StorConfig stores a config in the local storage
+// StoreConfig stores a config in the local storage
 func (l *Local) StoreConfig(c config.Config) error {
+	grp, err := l.RetrieveGroup(c.Group)
+	if err != nil {
+		return err
+	}
+
 	basePath := l.path + "/" + c.Group + "/"
 
-	err := os.MkdirAll(basePath, os.ModePerm)
+	err = os.MkdirAll(basePath, os.ModePerm)
 	if err != nil {
 		return err
 	}
@@ -62,21 +68,32 @@ func (l *Local) StoreConfig(c config.Config) error {
 		return err
 	}
 
+	// TODO: There is a chance that the config will get created and storing the new group with config added will fail. Fix fix.
+	grp.Configs = append(grp.Configs, c.ID)
+	if err := l.StoreGroup(*grp); err != nil {
+		log.Println("Failed persisting Group when new config was added. The config will most likely exist but not be added to Group config array.")
+		return err
+	}
+
 	return storeJSON(file, c)
 }
 
-// RetrieveConfig retrieves a config from the local storage
-func (l *Local) RetrieveConfig(group string, id string) (*config.Config, error) {
+// RetrieveConfig retrieves a config from the local storage spesified by groupID and id of the config
+func (l *Local) RetrieveConfig(groupID string, id string) (*config.Config, error) {
 
-	file, err := os.OpenFile(l.path+"/"+group+"/"+id+".json", os.O_RDONLY, 0644)
+	if _, err := l.RetrieveGroup(groupID); err != nil {
+		return &config.Config{}, err
+	}
+
+	file, err := os.OpenFile(l.path+"/"+groupID+"/"+id+".json", os.O_RDONLY, 0644)
 	if err != nil {
 		return nil, err
 	}
 
 	var c config.Config
 	err = retrieveJSON(file, &c)
-	return &c, err
 
+	return &c, err
 }
 
 func storeJSON(file *os.File, v interface{}) error {
