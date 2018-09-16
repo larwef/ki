@@ -88,6 +88,46 @@ func TestLocal_StoreAndRetrieveConfig(t *testing.T) {
 	testutil.AssertEqual(t, retrieveConf.Group, "someGroup")
 }
 
+func TestLocal_StoreConfig_NoDuplicateInGroup(t *testing.T) {
+	defer clean()
+	lcl := NewLocal(testDir)
+
+	grp := Group{
+		ID: "someGroup",
+	}
+
+	conf1 := Config{
+		ID:    "someConfig",
+		Group: "someGroup",
+	}
+
+	conf2 := Config{
+		ID:    "someConfig",
+		Group: "someGroup",
+	}
+
+	// This is essentialy an update of conf1
+	conf3 := Config{
+		ID:    "someOtherConfig",
+		Group: "someGroup",
+	}
+
+	err := lcl.StoreGroup(grp)
+	testutil.AssertNotError(t, err)
+
+	err = lcl.StoreConfig(conf1)
+	testutil.AssertNotError(t, err)
+	err = lcl.StoreConfig(conf2)
+	testutil.AssertNotError(t, err)
+	err = lcl.StoreConfig(conf3)
+	testutil.AssertNotError(t, err)
+
+	newGrp, err := lcl.RetrieveGroup("someGroup")
+	testutil.AssertNotError(t, err)
+	testutil.AssertEqual(t, newGrp.ID, grp.ID)
+	testutil.AssertEqual(t, len(newGrp.Configs), 2)
+}
+
 func TestLocal_StoreConfig_GroupNotExist(t *testing.T) {
 	defer clean()
 	lcl := NewLocal(testDir)

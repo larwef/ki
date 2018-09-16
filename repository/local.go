@@ -78,9 +78,22 @@ func (l *Local) StoreConfig(c Config) error {
 	}
 
 	// TODO: There is a chance that the config will get created and storing the new group with config added will fail. Fix fix.
-	// TODO: Should not append if configID already exists
 	// TODO: Sort array?
-	grp.Configs = append(grp.Configs, c.ID)
+	if len(grp.Configs) == 0 {
+		grp.Configs = append(grp.Configs, c.ID)
+	} else {
+		for i := 0; i <= len(grp.Configs); i++ {
+			if grp.Configs[i] == c.ID {
+				break
+			}
+
+			if i >= len(grp.Configs)-1 {
+				grp.Configs = append(grp.Configs, c.ID)
+				break
+			}
+		}
+	}
+
 	if err := l.storeGroup(*grp); err != nil {
 		log.Println("Failed persisting Group when new config was added. The config will most likely exist but not be added to Group config array.")
 		return err
