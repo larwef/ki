@@ -1,4 +1,4 @@
-package group
+package repository
 
 // Group represents a group object
 type Group struct {

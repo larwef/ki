@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"github.com/larwef/ki/config"
 	"github.com/larwef/ki/repository"
 	"github.com/larwef/ki/testutil"
 	"net/http"
@@ -14,7 +13,7 @@ func TestBaseHttpHandler_InvalidPath(t *testing.T) {
 	testutil.AssertNotError(t, err)
 
 	res := httptest.NewRecorder()
-	handler := NewBaseHTTPHandler(&repository.Mock{StoredConfig: config.Config{}})
+	handler := NewBaseHTTPHandler(&repository.Mock{StoredConfig: repository.Config{}})
 
 	handler.ServeHTTP(res, req)
 

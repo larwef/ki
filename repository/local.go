@@ -2,8 +2,6 @@ package repository
 
 import (
 	"encoding/json"
-	"github.com/larwef/ki/config"
-	"github.com/larwef/ki/group"
 	"log"
 	"os"
 )
@@ -20,7 +18,7 @@ func NewLocal(path string) *Local {
 
 // StoreGroup stores a config in the local storage
 // TODO: Shouldnt overwrite existing group
-func (l *Local) StoreGroup(g group.Group) error {
+func (l *Local) StoreGroup(g Group) error {
 	basePath := l.path + "/"
 
 	err := os.MkdirAll(basePath, os.ModePerm)
@@ -37,21 +35,21 @@ func (l *Local) StoreGroup(g group.Group) error {
 }
 
 // RetrieveGroup retrieves a group from the local storage specified by id
-func (l *Local) RetrieveGroup(id string) (*group.Group, error) {
+func (l *Local) RetrieveGroup(id string) (*Group, error) {
 
 	file, err := os.OpenFile(l.path+"/"+id+".json", os.O_RDONLY, 0644)
 	if err != nil {
 		return nil, ErrGroupNotFound
 	}
 
-	var g group.Group
+	var g Group
 	err = retrieveJSON(file, &g)
 	return &g, err
 
 }
 
 // StoreConfig stores a config in the local storage
-func (l *Local) StoreConfig(c config.Config) error {
+func (l *Local) StoreConfig(c Config) error {
 	grp, err := l.RetrieveGroup(c.Group)
 	if err != nil {
 		return err
@@ -82,10 +80,10 @@ func (l *Local) StoreConfig(c config.Config) error {
 }
 
 // RetrieveConfig retrieves a config from the local storage spesified by groupID and id of the config
-func (l *Local) RetrieveConfig(groupID string, id string) (*config.Config, error) {
+func (l *Local) RetrieveConfig(groupID string, id string) (*Config, error) {
 
 	if _, err := l.RetrieveGroup(groupID); err != nil {
-		return &config.Config{}, err
+		return &Config{}, err
 	}
 
 	file, err := os.OpenFile(l.path+"/"+groupID+"/"+id+".json", os.O_RDONLY, 0644)
@@ -93,7 +91,7 @@ func (l *Local) RetrieveConfig(groupID string, id string) (*config.Config, error
 		return nil, ErrConfigNotFound
 	}
 
-	var c config.Config
+	var c Config
 	err = retrieveJSON(file, &c)
 
 	return &c, err

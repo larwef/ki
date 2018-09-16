@@ -1,8 +1,6 @@
 package repository
 
 import (
-	"github.com/larwef/ki/config"
-	"github.com/larwef/ki/group"
 	"github.com/larwef/ki/testutil"
 	"os"
 	"testing"
@@ -14,7 +12,7 @@ func TestLocal_StoreAndRetrieveGroup(t *testing.T) {
 	defer clean()
 	lcl := NewLocal(testDir)
 
-	grp := group.Group{
+	grp := Group{
 		ID: "someGroup",
 	}
 
@@ -30,7 +28,7 @@ func TestLocal_RetrieveGroup_GroupNotExist(t *testing.T) {
 	defer clean()
 	lcl := NewLocal(testDir)
 
-	grp := group.Group{
+	grp := Group{
 		ID: "someGroup",
 	}
 
@@ -45,11 +43,11 @@ func TestLocal_StoreAndRetrieveConfig(t *testing.T) {
 	defer clean()
 	lcl := NewLocal(testDir)
 
-	grp := group.Group{
+	grp := Group{
 		ID: "someGroup",
 	}
 
-	conf := config.Config{
+	conf := Config{
 		ID:    "someConfig",
 		Group: "someGroup",
 	}
@@ -69,11 +67,11 @@ func TestLocal_StoreConfig_GroupNotExist(t *testing.T) {
 	defer clean()
 	lcl := NewLocal(testDir)
 
-	grp := group.Group{
+	grp := Group{
 		ID: "someGroup",
 	}
 
-	conf := config.Config{
+	conf := Config{
 		ID:    "someConfig",
 		Group: "someOtherGroup",
 	}
@@ -88,11 +86,11 @@ func TestLocal_RetrieveConfig_GroupNotExist(t *testing.T) {
 	defer clean()
 	lcl := NewLocal(testDir)
 
-	grp := group.Group{
+	grp := Group{
 		ID: "someGroup",
 	}
 
-	conf := config.Config{
+	conf := Config{
 		ID:    "someConfig",
 		Group: "someGroup",
 	}
@@ -110,11 +108,11 @@ func TestLocal_RetrieveConfig_ConfigNotExist(t *testing.T) {
 	defer clean()
 	lcl := NewLocal(testDir)
 
-	grp := group.Group{
+	grp := Group{
 		ID: "someGroup",
 	}
 
-	conf := config.Config{
+	conf := Config{
 		ID:    "someConfig",
 		Group: "someGroup",
 	}

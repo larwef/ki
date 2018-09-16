@@ -3,8 +3,6 @@ package controller
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/larwef/ki/config"
-	"github.com/larwef/ki/group"
 	"github.com/larwef/ki/repository"
 	"github.com/larwef/ki/testutil"
 	"net/http"
@@ -32,7 +30,7 @@ func TestConfigHandler_InvalidMethod(t *testing.T) {
 	testutil.AssertNotError(t, err)
 
 	res := httptest.NewRecorder()
-	handler := NewBaseHTTPHandler(&repository.Mock{StoredConfig: config.Config{}})
+	handler := NewBaseHTTPHandler(&repository.Mock{StoredConfig: repository.Config{}})
 
 	handler.ServeHTTP(res, req)
 
@@ -52,7 +50,7 @@ func TestConfigHanler_PutGroup(t *testing.T) {
 	testutil.AssertEqual(t, res.Code, http.StatusOK)
 	testutil.AssertEqual(t, res.Header().Get("Content-Type"), "application/json; charset=utf-8")
 
-	var grpResponse group.Group
+	var grpResponse repository.Group
 	err = json.NewDecoder(res.Body).Decode(&grpResponse)
 	testutil.AssertNotError(t, err)
 
@@ -66,7 +64,7 @@ func TestConfigHanler_GetGroup(t *testing.T) {
 
 	res := httptest.NewRecorder()
 	handler := NewBaseHTTPHandler(&repository.Mock{
-		StoredGroup: group.Group{
+		StoredGroup: repository.Group{
 			ID:      "someGroup",
 			Configs: []string{"config1", "config2", "config3"},
 		},
@@ -76,7 +74,7 @@ func TestConfigHanler_GetGroup(t *testing.T) {
 	testutil.AssertEqual(t, res.Code, http.StatusOK)
 	testutil.AssertEqual(t, res.Header().Get("Content-Type"), "application/json; charset=utf-8")
 
-	var grpResponse group.Group
+	var grpResponse repository.Group
 	err = json.NewDecoder(res.Body).Decode(&grpResponse)
 	testutil.AssertNotError(t, err)
 
@@ -90,7 +88,7 @@ func TestConfigHanler_GetGroup_GroupNotFound(t *testing.T) {
 
 	res := httptest.NewRecorder()
 	handler := NewBaseHTTPHandler(&repository.Mock{
-		StoredGroup: group.Group{
+		StoredGroup: repository.Group{
 			ID:      "someGroup",
 			Configs: []string{"config1", "config2", "config3"},
 		},
@@ -111,7 +109,7 @@ func TestConfigHandler_PutConfig(t *testing.T) {
 
 	res := httptest.NewRecorder()
 	handler := NewBaseHTTPHandler(&repository.Mock{
-		StoredGroup: group.Group{ID: "someOtherGroup"},
+		StoredGroup: repository.Group{ID: "someOtherGroup"},
 	})
 
 	handler.ServeHTTP(res, req)
@@ -119,13 +117,13 @@ func TestConfigHandler_PutConfig(t *testing.T) {
 	testutil.AssertEqual(t, res.Code, http.StatusOK)
 	testutil.AssertEqual(t, res.Header().Get("Content-Type"), "application/json; charset=utf-8")
 
-	var configResponse config.Config
+	var configResponse repository.Config
 	err = json.NewDecoder(res.Body).Decode(&configResponse)
 	testutil.AssertNotError(t, err)
 
 	file, err = os.OpenFile("../testdata/storedConfigExample.json", os.O_RDONLY, 0644)
 	testutil.AssertNotError(t, err)
-	var configExpected config.Config
+	var configExpected repository.Config
 	err = json.NewDecoder(file).Decode(&configExpected)
 	testutil.AssertNotError(t, err)
 
@@ -143,7 +141,7 @@ func TestConfigHandler_PutConfig_GroupNotFound(t *testing.T) {
 
 	res := httptest.NewRecorder()
 	handler := NewBaseHTTPHandler(&repository.Mock{
-		StoredGroup: group.Group{ID: "someGroup"},
+		StoredGroup: repository.Group{ID: "someGroup"},
 	})
 
 	handler.ServeHTTP(res, req)
@@ -157,12 +155,12 @@ func TestConfigHandler_GetConfig(t *testing.T) {
 	req, err := http.NewRequest(http.MethodGet, "/config/someGroup/someId", nil)
 	testutil.AssertNotError(t, err)
 
-	var c config.Config
+	var c repository.Config
 	testutil.UnmarshalJSONFromFile(t, "../testdata/configExample.json", &c)
 
 	res := httptest.NewRecorder()
 	handler := NewBaseHTTPHandler(&repository.Mock{
-		StoredGroup:  group.Group{ID: "someGroup"},
+		StoredGroup:  repository.Group{ID: "someGroup"},
 		StoredConfig: c,
 	})
 
@@ -179,10 +177,10 @@ func TestConfigHandler_GetConfig_GroupNotFound(t *testing.T) {
 
 	res := httptest.NewRecorder()
 	handler := NewBaseHTTPHandler(&repository.Mock{
-		StoredGroup: group.Group{
+		StoredGroup: repository.Group{
 			ID: "someGroup",
 		},
-		StoredConfig: config.Config{
+		StoredConfig: repository.Config{
 			ID: "someId",
 		},
 	})
@@ -200,10 +198,10 @@ func TestConfigHandler_GetConfig_ConfigNotFound(t *testing.T) {
 
 	res := httptest.NewRecorder()
 	handler := NewBaseHTTPHandler(&repository.Mock{
-		StoredGroup: group.Group{
+		StoredGroup: repository.Group{
 			ID: "someGroup",
 		},
-		StoredConfig: config.Config{
+		StoredConfig: repository.Config{
 			ID: "someId",
 		},
 	})

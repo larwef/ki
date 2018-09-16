@@ -2,8 +2,6 @@ package controller
 
 import (
 	"encoding/json"
-	"github.com/larwef/ki/config"
-	"github.com/larwef/ki/group"
 	"github.com/larwef/ki/repository"
 	"log"
 	"net/http"
@@ -78,7 +76,7 @@ func (c *configHandler) handleGet(h http.Handler) http.Handler {
 
 func (c *configHandler) storeGroup(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		var grp group.Group
+		var grp repository.Group
 
 		if err := json.NewDecoder(req.Body).Decode(&grp); err != nil {
 			log.Printf("Error: %v", err)
@@ -104,7 +102,7 @@ func (c *configHandler) retrieveGroup(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 		grp, _, _ := getPathVariables(req.URL.Path)
 
-		var conf *group.Group
+		var conf *repository.Group
 		var err error
 		if conf, err = c.repository.RetrieveGroup(grp); err != nil {
 			log.Printf("Error: %v", err)
@@ -124,7 +122,7 @@ func (c *configHandler) retrieveGroup(h http.Handler) http.Handler {
 
 func (c *configHandler) storeConfig(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		var conf config.Config
+		var conf repository.Config
 
 		if err := json.NewDecoder(req.Body).Decode(&conf); err != nil {
 			log.Printf("Error: %v", err)
@@ -152,7 +150,7 @@ func (c *configHandler) retrieveConfig(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 		grp, id, _ := getPathVariables(req.URL.Path)
 
-		var conf *config.Config
+		var conf *repository.Config
 		var err error
 		if conf, err = c.repository.RetrieveConfig(grp, id); err != nil {
 			log.Printf("Error: %v", err)
