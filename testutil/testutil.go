@@ -33,6 +33,13 @@ func AssertNotError(t *testing.T, err error) {
 	}
 }
 
+// AssertIsError asserts if an error equals nil and and fails the test if its not
+func AssertIsError(t *testing.T, err error) {
+	if err == nil {
+		t.Fatal("Expected error. Was nil.")
+	}
+}
+
 // AssertEqual asserts if two object are same type and equal value
 func AssertEqual(t *testing.T, actual interface{}, expected interface{}) {
 	if actual != expected {

@@ -33,6 +33,12 @@ var ErrInternal = Error{
 	Message: "Internal server error",
 }
 
+// ErrConflict is returned when an object already exists thats not overwritable
+var ErrConflict = Error{
+	Code:    http.StatusConflict,
+	Message: "Resource already exist and is not overwritable",
+}
+
 // Repository is an interface defining behaviour for persisting
 type Repository interface {
 	StoreGroup(g Group) error

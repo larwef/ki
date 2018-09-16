@@ -24,6 +24,31 @@ func TestLocal_StoreAndRetrieveGroup(t *testing.T) {
 	testutil.AssertEqual(t, retrieveGrp.ID, grp.ID)
 }
 
+func TestLocal_StoreGroup_NotOverWrite(t *testing.T) {
+	defer clean()
+	lcl := NewLocal(testDir)
+
+	grp := Group{
+		ID:      "someGroup",
+		Configs: []string{"config1", "config2", "config3", "config4"},
+	}
+
+	err := lcl.StoreGroup(grp)
+	testutil.AssertNotError(t, err)
+
+	_, err = lcl.RetrieveGroup("someGroup")
+	testutil.AssertNotError(t, err)
+
+	newGrp := Group{
+		ID:      "someGroup",
+		Configs: []string{},
+	}
+
+	err = lcl.StoreGroup(newGrp)
+	testutil.AssertIsError(t, err)
+	testutil.AssertEqual(t, err, ErrConflict)
+}
+
 func TestLocal_RetrieveGroup_GroupNotExist(t *testing.T) {
 	defer clean()
 	lcl := NewLocal(testDir)
@@ -36,7 +61,7 @@ func TestLocal_RetrieveGroup_GroupNotExist(t *testing.T) {
 	testutil.AssertNotError(t, err)
 
 	_, err = lcl.RetrieveGroup("someOtherGroup")
-	testutil.AssertEqual(t, err.Error(), ErrGroupNotFound.Error())
+	testutil.AssertEqual(t, err, ErrGroupNotFound)
 }
 
 func TestLocal_StoreAndRetrieveConfig(t *testing.T) {
@@ -79,7 +104,7 @@ func TestLocal_StoreConfig_GroupNotExist(t *testing.T) {
 	err := lcl.StoreGroup(grp)
 	testutil.AssertNotError(t, err)
 	err = lcl.StoreConfig(conf)
-	testutil.AssertEqual(t, err.Error(), ErrGroupNotFound.Error())
+	testutil.AssertEqual(t, err, ErrGroupNotFound)
 }
 
 func TestLocal_RetrieveConfig_GroupNotExist(t *testing.T) {
@@ -101,7 +126,7 @@ func TestLocal_RetrieveConfig_GroupNotExist(t *testing.T) {
 	testutil.AssertNotError(t, err)
 
 	_, err = lcl.RetrieveConfig("someOtherGroup", "someConfig")
-	testutil.AssertEqual(t, err.Error(), ErrGroupNotFound.Error())
+	testutil.AssertEqual(t, err, ErrGroupNotFound)
 }
 
 func TestLocal_RetrieveConfig_ConfigNotExist(t *testing.T) {
@@ -123,7 +148,7 @@ func TestLocal_RetrieveConfig_ConfigNotExist(t *testing.T) {
 	testutil.AssertNotError(t, err)
 
 	_, err = lcl.RetrieveConfig("someGroup", "someOtherConfig")
-	testutil.AssertEqual(t, err.Error(), ErrConfigNotFound.Error())
+	testutil.AssertEqual(t, err, ErrConfigNotFound)
 }
 
 func clean() {
