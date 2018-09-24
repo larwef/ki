@@ -1,11 +1,11 @@
-package repository
+package local
 
 import (
 	"encoding/json"
 	"time"
 )
 
-// Config represents a config resource
+// Config represents a config resource to be stored
 type Config struct {
 	ID           string          `json:"id"`
 	Name         string          `json:"name"`

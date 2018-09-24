@@ -2,7 +2,8 @@ package controller
 
 import (
 	"bytes"
-	"github.com/larwef/ki/repository"
+	"github.com/larwef/ki/pkg/adding"
+	"github.com/larwef/ki/pkg/listing"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -15,21 +16,21 @@ const (
 	configPath = "config"
 )
 
-// BaseHTTPHandler handles is the entry point for requests and handles initial routing
-type BaseHTTPHandler struct {
-	repository    repository.Repository
-	configHandler *configHandler
+// Handler handles is the entry point for requests and handles initial routing
+type Handler struct {
+	adding  adding.Service
+	listing listing.Service
 }
 
-// NewBaseHTTPHandler returns a new BaseHTTPHandler
-func NewBaseHTTPHandler(repository repository.Repository) *BaseHTTPHandler {
-	return &BaseHTTPHandler{
-		repository:    repository,
-		configHandler: &configHandler{repository: repository},
+// NewBaseHTTPHandler returns a new Handler
+func NewBaseHTTPHandler(adding adding.Service, listing listing.Service) *Handler {
+	return &Handler{
+		adding:  adding,
+		listing: listing,
 	}
 }
 
-func (b *BaseHTTPHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
+func (handler *Handler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	var head string
 	head, req.URL.Path = shiftPath(req.URL.Path)
 
@@ -37,8 +38,8 @@ func (b *BaseHTTPHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) 
 	case configPath:
 		newHandlerChain(emptyHandler()).
 			add(inOutLog).
-			add(b.configHandler.handleConfig).
-			//add(b.groupHandler.handleGroup).
+			add(handler.handleConfig).
+			//add(handler.groupHandler.handleGroup).
 			ServeHTTP(res, req)
 	default:
 		log.Printf("Invalid path %q called", head)

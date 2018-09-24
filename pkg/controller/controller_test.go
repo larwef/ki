@@ -1,7 +1,9 @@
 package controller
 
 import (
-	"github.com/larwef/ki/repository"
+	"github.com/larwef/ki/pkg/adding"
+	"github.com/larwef/ki/pkg/listing"
+	"github.com/larwef/ki/pkg/repository/memory"
 	"github.com/larwef/ki/testutil"
 	"net/http"
 	"net/http/httptest"
@@ -13,7 +15,8 @@ func TestBaseHttpHandler_InvalidPath(t *testing.T) {
 	testutil.AssertNotError(t, err)
 
 	res := httptest.NewRecorder()
-	handler := NewBaseHTTPHandler(&repository.Mock{StoredConfig: repository.Config{}})
+	repository := memory.NewRepository()
+	handler := NewBaseHTTPHandler(adding.NewService(repository), listing.NewService(repository))
 
 	handler.ServeHTTP(res, req)
 

@@ -13,7 +13,7 @@ coverage:
 	go tool cover -html=coverage.out
 
 build:
-	GOOS=linux go build -o $(TARGET)/app
+	GOOS=linux go build -o $(TARGET)/app cmd/main.go
 	zip -j $(TARGET)/deployment.zip $(TARGET)/app
 
 clean:

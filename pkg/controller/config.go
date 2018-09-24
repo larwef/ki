@@ -2,31 +2,28 @@ package controller
 
 import (
 	"encoding/json"
-	"github.com/larwef/ki/repository"
+	"github.com/larwef/ki/pkg/adding"
+	"github.com/larwef/ki/pkg/listing"
 	"log"
 	"net/http"
 	"time"
 )
 
-type configHandler struct {
-	repository repository.Repository
-}
-
 // TODO: Should check path -> method, not method -> path
-func (c *configHandler) handleConfig(h http.Handler) http.Handler {
+func (handler *Handler) handleConfig(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 		switch req.Method {
 		case http.MethodPut:
 			newHandlerChain(h).
 				add(configPathValidator).
 				add(setCommonHeaders).
-				add(c.handlePut).
+				add(handler.handlePut).
 				ServeHTTP(res, req)
 		case http.MethodGet:
 			newHandlerChain(h).
 				add(configPathValidator).
 				add(setCommonHeaders).
-				add(c.handleGet).
+				add(handler.handleGet).
 				ServeHTTP(res, req)
 		default:
 			http.Error(res, "Method Not Allowed", http.StatusMethodNotAllowed)
@@ -35,7 +32,7 @@ func (c *configHandler) handleConfig(h http.Handler) http.Handler {
 }
 
 // TODO: The routing could probably be more elegant
-func (c *configHandler) handlePut(h http.Handler) http.Handler {
+func (handler *Handler) handlePut(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 		chain := newHandlerChain(h)
 
@@ -43,12 +40,12 @@ func (c *configHandler) handlePut(h http.Handler) http.Handler {
 
 		if id == "" {
 			chain.
-				add(c.storeGroup).
-				add(c.retrieveGroup)
+				add(handler.storeGroup).
+				add(handler.retrieveGroup)
 		} else {
 			chain.
-				add(c.storeConfig).
-				add(c.retrieveConfig)
+				add(handler.storeConfig).
+				add(handler.retrieveConfig)
 		}
 
 		chain.ServeHTTP(res, req)
@@ -56,7 +53,7 @@ func (c *configHandler) handlePut(h http.Handler) http.Handler {
 }
 
 // TODO: The routing could probably be more elegant
-func (c *configHandler) handleGet(h http.Handler) http.Handler {
+func (handler *Handler) handleGet(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 		chain := newHandlerChain(h)
 
@@ -64,19 +61,19 @@ func (c *configHandler) handleGet(h http.Handler) http.Handler {
 
 		if id == "" {
 			chain.
-				add(c.retrieveGroup)
+				add(handler.retrieveGroup)
 		} else {
 			chain.
-				add(c.retrieveConfig)
+				add(handler.retrieveConfig)
 		}
 
 		chain.ServeHTTP(res, req)
 	})
 }
 
-func (c *configHandler) storeGroup(h http.Handler) http.Handler {
+func (handler *Handler) storeGroup(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		var grp repository.Group
+		var grp adding.Group
 
 		if err := json.NewDecoder(req.Body).Decode(&grp); err != nil {
 			log.Printf("Error: %v", err)
@@ -88,9 +85,13 @@ func (c *configHandler) storeGroup(h http.Handler) http.Handler {
 
 		grp.ID, _, _ = getPathVariables(req.URL.Path)
 
-		if err := c.repository.StoreGroup(grp); err != nil {
+		if err := handler.adding.AddGroup(grp); err != nil {
 			log.Printf("Error: %v", err)
-			http.Error(res, err.Error(), err.(repository.Error).Code)
+			if err == adding.ErrGroupConflict {
+				http.Error(res, err.Error(), http.StatusConflict)
+				return
+			}
+			http.Error(res, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
 
@@ -98,15 +99,19 @@ func (c *configHandler) storeGroup(h http.Handler) http.Handler {
 	})
 }
 
-func (c *configHandler) retrieveGroup(h http.Handler) http.Handler {
+func (handler *Handler) retrieveGroup(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		grp, _, _ := getPathVariables(req.URL.Path)
+		grpID, _, _ := getPathVariables(req.URL.Path)
 
-		var conf *repository.Group
+		var conf *listing.Group
 		var err error
-		if conf, err = c.repository.RetrieveGroup(grp); err != nil {
+		if conf, err = handler.listing.GetGroup(grpID); err != nil {
 			log.Printf("Error: %v", err)
-			http.Error(res, err.Error(), err.(repository.Error).Code)
+			if err == listing.ErrGroupNotFound {
+				http.Error(res, err.Error(), http.StatusNotFound)
+				return
+			}
+			http.Error(res, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
 
@@ -120,9 +125,9 @@ func (c *configHandler) retrieveGroup(h http.Handler) http.Handler {
 	})
 }
 
-func (c *configHandler) storeConfig(h http.Handler) http.Handler {
+func (handler *Handler) storeConfig(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		var conf repository.Config
+		var conf adding.Config
 
 		if err := json.NewDecoder(req.Body).Decode(&conf); err != nil {
 			log.Printf("Error: %v", err)
@@ -135,9 +140,13 @@ func (c *configHandler) storeConfig(h http.Handler) http.Handler {
 		conf.Group, conf.ID, _ = getPathVariables(req.URL.Path)
 		conf.LastModified = time.Now()
 
-		if err := c.repository.StoreConfig(conf); err != nil {
+		if err := handler.adding.AddConfig(conf); err != nil {
 			log.Printf("Error: %v", err)
-			http.Error(res, err.Error(), err.(repository.Error).Code)
+			if err == listing.ErrGroupNotFound {
+				http.Error(res, err.Error(), http.StatusNotFound)
+				return
+			}
+			http.Error(res, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
 
@@ -145,15 +154,19 @@ func (c *configHandler) storeConfig(h http.Handler) http.Handler {
 	})
 }
 
-func (c *configHandler) retrieveConfig(h http.Handler) http.Handler {
+func (handler *Handler) retrieveConfig(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 		grp, id, _ := getPathVariables(req.URL.Path)
 
-		var conf *repository.Config
+		var conf *listing.Config
 		var err error
-		if conf, err = c.repository.RetrieveConfig(grp, id); err != nil {
+		if conf, err = handler.listing.GetConfig(grp, id); err != nil {
 			log.Printf("Error: %v", err)
-			http.Error(res, err.Error(), err.(repository.Error).Code)
+			if err == listing.ErrGroupNotFound || err == listing.ErrConfigNotFound {
+				http.Error(res, err.Error(), http.StatusNotFound)
+				return
+			}
+			http.Error(res, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
 
