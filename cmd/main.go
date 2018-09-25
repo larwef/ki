@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/larwef/ki/internal/adding"
-	"github.com/larwef/ki/internal/controller"
+	"github.com/larwef/ki/internal/http/crud"
 	"github.com/larwef/ki/internal/listing"
 	"github.com/larwef/ki/internal/repository/local"
 	"github.com/larwef/ki/internal/repository/memory"
@@ -50,7 +50,7 @@ func main() {
 
 	server := http.Server{
 		Addr:         ":8080",
-		Handler:      controller.NewBaseHTTPHandler(add, lst),
+		Handler:      crud.NewHandler(add, lst),
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}
