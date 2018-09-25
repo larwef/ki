@@ -32,15 +32,17 @@ func main() {
 	var add adding.Service
 	var lst listing.Service
 	switch storageType {
-	case JSON:
-		repo := local.NewRepository(path)
-		add = adding.NewService(repo)
-		lst = listing.NewService(repo)
-		break
 	case Memory:
 		repo := memory.NewRepository()
 		add = adding.NewService(repo)
 		lst = listing.NewService(repo)
+		log.Println("Using in memory storage")
+		break
+	case JSON:
+		repo := local.NewRepository(path)
+		add = adding.NewService(repo)
+		lst = listing.NewService(repo)
+		log.Println("Using JSON storage")
 		break
 	default:
 		log.Fatal("Unsupported storage type")

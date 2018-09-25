@@ -2,6 +2,8 @@ TARGET=target
 
 all: test build
 
+# PHONY used to mitigate conflict with dir name test
+.PHONY: test
 test:
 	go fmt ./...
 	golint ./...

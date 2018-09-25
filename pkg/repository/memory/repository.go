@@ -81,7 +81,7 @@ func (r *Repository) StoreConfig(c adding.Config) error {
 }
 
 // RetrieveConfig retrieves a config from the memory storage spesified by groupID and id of the config
-// TODO: Doesnt behave same way as local. Cant handle configs with same id and different group
+// TODO: Doesnt behave same way as local. Cant handle configs with same id and different group. Improve and make test.
 func (r *Repository) RetrieveConfig(groupID string, id string) (*listing.Config, error) {
 
 	if _, exists := r.groups[groupID]; !exists {

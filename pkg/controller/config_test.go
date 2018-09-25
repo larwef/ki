@@ -6,18 +6,18 @@ import (
 	"github.com/larwef/ki/pkg/adding"
 	"github.com/larwef/ki/pkg/listing"
 	"github.com/larwef/ki/pkg/repository/memory"
-	"github.com/larwef/ki/testutil"
+	"github.com/larwef/ki/test"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
 )
 
-var testDataFolder = "testdata/"
+var testDataFolder = "../../test/testdata/"
 
 func TestConfigHandler_InvalidConfigPath(t *testing.T) {
 	req, err := http.NewRequest("GET", "/config/someGroup/someId/somethingElse", nil)
-	testutil.AssertNotError(t, err)
+	test.AssertNotError(t, err)
 
 	res := httptest.NewRecorder()
 	repository := memory.NewRepository()
@@ -25,14 +25,14 @@ func TestConfigHandler_InvalidConfigPath(t *testing.T) {
 
 	handler.ServeHTTP(res, req)
 
-	testutil.AssertEqual(t, res.Code, http.StatusBadRequest)
-	testutil.AssertEqual(t, res.Header().Get("Content-Type"), "text/plain; charset=utf-8")
-	testutil.AssertEqual(t, res.Body.String(), "Invalid Path\n")
+	test.AssertEqual(t, res.Code, http.StatusBadRequest)
+	test.AssertEqual(t, res.Header().Get("Content-Type"), "text/plain; charset=utf-8")
+	test.AssertEqual(t, res.Body.String(), "Invalid Path\n")
 }
 
 func TestConfigHandler_InvalidMethod(t *testing.T) {
 	req, err := http.NewRequest("INVALID", "/config/someGroup/someId", nil)
-	testutil.AssertNotError(t, err)
+	test.AssertNotError(t, err)
 
 	res := httptest.NewRecorder()
 	repository := memory.NewRepository()
@@ -40,34 +40,34 @@ func TestConfigHandler_InvalidMethod(t *testing.T) {
 
 	handler.ServeHTTP(res, req)
 
-	testutil.AssertEqual(t, res.Code, http.StatusMethodNotAllowed)
-	testutil.AssertEqual(t, res.Header().Get("Content-Type"), "text/plain; charset=utf-8")
-	testutil.AssertEqual(t, res.Body.String(), "Method Not Allowed\n")
+	test.AssertEqual(t, res.Code, http.StatusMethodNotAllowed)
+	test.AssertEqual(t, res.Header().Get("Content-Type"), "text/plain; charset=utf-8")
+	test.AssertEqual(t, res.Body.String(), "Method Not Allowed\n")
 }
 
 func TestConfigHandler_PutGroup(t *testing.T) {
 	req, err := http.NewRequest(http.MethodPut, "/config/someGroup/", bytes.NewBufferString("{}"))
-	testutil.AssertNotError(t, err)
+	test.AssertNotError(t, err)
 
 	res := httptest.NewRecorder()
 	repository := memory.NewRepository()
 	handler := NewBaseHTTPHandler(adding.NewService(repository), listing.NewService(repository))
 
 	handler.ServeHTTP(res, req)
-	testutil.AssertEqual(t, res.Code, http.StatusOK)
-	testutil.AssertEqual(t, res.Header().Get("Content-Type"), "application/json; charset=utf-8")
+	test.AssertEqual(t, res.Code, http.StatusOK)
+	test.AssertEqual(t, res.Header().Get("Content-Type"), "application/json; charset=utf-8")
 
 	var grpResponse listing.Group
 	err = json.NewDecoder(res.Body).Decode(&grpResponse)
-	testutil.AssertNotError(t, err)
+	test.AssertNotError(t, err)
 
-	testutil.AssertEqual(t, grpResponse.ID, "someGroup")
-	testutil.AssertEqual(t, len(grpResponse.Configs), 0)
+	test.AssertEqual(t, grpResponse.ID, "someGroup")
+	test.AssertEqual(t, len(grpResponse.Configs), 0)
 }
 
 func TestConfigHandler_GetGroup(t *testing.T) {
 	req, err := http.NewRequest(http.MethodGet, "/config/someGroup/", nil)
-	testutil.AssertNotError(t, err)
+	test.AssertNotError(t, err)
 
 	res := httptest.NewRecorder()
 	repository := memory.NewRepository()
@@ -79,20 +79,20 @@ func TestConfigHandler_GetGroup(t *testing.T) {
 	})
 
 	handler.ServeHTTP(res, req)
-	testutil.AssertEqual(t, res.Code, http.StatusOK)
-	testutil.AssertEqual(t, res.Header().Get("Content-Type"), "application/json; charset=utf-8")
+	test.AssertEqual(t, res.Code, http.StatusOK)
+	test.AssertEqual(t, res.Header().Get("Content-Type"), "application/json; charset=utf-8")
 
 	var grpResponse listing.Group
 	err = json.NewDecoder(res.Body).Decode(&grpResponse)
-	testutil.AssertNotError(t, err)
+	test.AssertNotError(t, err)
 
-	testutil.AssertEqual(t, grpResponse.ID, "someGroup")
-	testutil.AssertEqual(t, len(grpResponse.Configs), 3)
+	test.AssertEqual(t, grpResponse.ID, "someGroup")
+	test.AssertEqual(t, len(grpResponse.Configs), 3)
 }
 
 func TestConfigHandler_GetGroup_GroupNotFound(t *testing.T) {
 	req, err := http.NewRequest(http.MethodGet, "/config/someOtherGroup/", nil)
-	testutil.AssertNotError(t, err)
+	test.AssertNotError(t, err)
 
 	res := httptest.NewRecorder()
 	repository := memory.NewRepository()
@@ -104,17 +104,17 @@ func TestConfigHandler_GetGroup_GroupNotFound(t *testing.T) {
 	})
 
 	handler.ServeHTTP(res, req)
-	testutil.AssertEqual(t, res.Code, http.StatusNotFound)
-	testutil.AssertEqual(t, res.Header().Get("Content-Type"), "text/plain; charset=utf-8")
-	testutil.AssertEqual(t, res.Body.String(), listing.ErrGroupNotFound.Error()+"\n")
+	test.AssertEqual(t, res.Code, http.StatusNotFound)
+	test.AssertEqual(t, res.Header().Get("Content-Type"), "text/plain; charset=utf-8")
+	test.AssertEqual(t, res.Body.String(), listing.ErrGroupNotFound.Error()+"\n")
 }
 
 func TestConfigHandler_PutConfig(t *testing.T) {
 	file, err := os.OpenFile(testDataFolder+"configExample.json", os.O_RDONLY, 0644)
-	testutil.AssertNotError(t, err)
+	test.AssertNotError(t, err)
 
 	req, err := http.NewRequest(http.MethodPut, "/config/someOtherGroup/someOtherId", file)
-	testutil.AssertNotError(t, err)
+	test.AssertNotError(t, err)
 
 	res := httptest.NewRecorder()
 	repository := memory.NewRepository()
@@ -126,30 +126,30 @@ func TestConfigHandler_PutConfig(t *testing.T) {
 
 	handler.ServeHTTP(res, req)
 
-	testutil.AssertEqual(t, res.Code, http.StatusOK)
-	testutil.AssertEqual(t, res.Header().Get("Content-Type"), "application/json; charset=utf-8")
+	test.AssertEqual(t, res.Code, http.StatusOK)
+	test.AssertEqual(t, res.Header().Get("Content-Type"), "application/json; charset=utf-8")
 
 	var configResponse listing.Config
 	err = json.NewDecoder(res.Body).Decode(&configResponse)
-	testutil.AssertNotError(t, err)
+	test.AssertNotError(t, err)
 
 	file, err = os.OpenFile(testDataFolder+"storedConfigExample.json", os.O_RDONLY, 0644)
-	testutil.AssertNotError(t, err)
+	test.AssertNotError(t, err)
 	var configExpected listing.Config
 	err = json.NewDecoder(file).Decode(&configExpected)
-	testutil.AssertNotError(t, err)
+	test.AssertNotError(t, err)
 
-	testutil.AssertEqual(t, configResponse.ID, configExpected.ID)
-	testutil.AssertEqual(t, configResponse.Name, configExpected.Name)
-	testutil.AssertEqual(t, configResponse.Group, configExpected.Group)
+	test.AssertEqual(t, configResponse.ID, configExpected.ID)
+	test.AssertEqual(t, configResponse.Name, configExpected.Name)
+	test.AssertEqual(t, configResponse.Group, configExpected.Group)
 }
 
 func TestConfigHandler_PutConfig_GroupNotFound(t *testing.T) {
 	file, err := os.OpenFile(testDataFolder+"configExample.json", os.O_RDONLY, 0644)
-	testutil.AssertNotError(t, err)
+	test.AssertNotError(t, err)
 
 	req, err := http.NewRequest(http.MethodPut, "/config/someOtherGroup/someOtherId", file)
-	testutil.AssertNotError(t, err)
+	test.AssertNotError(t, err)
 
 	res := httptest.NewRecorder()
 	repository := memory.NewRepository()
@@ -161,14 +161,14 @@ func TestConfigHandler_PutConfig_GroupNotFound(t *testing.T) {
 
 	handler.ServeHTTP(res, req)
 
-	testutil.AssertEqual(t, res.Code, http.StatusNotFound)
-	testutil.AssertEqual(t, res.Header().Get("Content-Type"), "text/plain; charset=utf-8")
-	testutil.AssertEqual(t, res.Body.String(), listing.ErrGroupNotFound.Error()+"\n")
+	test.AssertEqual(t, res.Code, http.StatusNotFound)
+	test.AssertEqual(t, res.Header().Get("Content-Type"), "text/plain; charset=utf-8")
+	test.AssertEqual(t, res.Body.String(), listing.ErrGroupNotFound.Error()+"\n")
 }
 
 func TestConfigHandler_GetConfig(t *testing.T) {
 	req, err := http.NewRequest(http.MethodGet, "/config/someGroup/someId", nil)
-	testutil.AssertNotError(t, err)
+	test.AssertNotError(t, err)
 
 	res := httptest.NewRecorder()
 	repository := memory.NewRepository()
@@ -179,19 +179,19 @@ func TestConfigHandler_GetConfig(t *testing.T) {
 	})
 
 	var c adding.Config
-	testutil.UnmarshalJSONFromFile(t, testDataFolder+"configExample.json", &c)
+	test.UnmarshalJSONFromFile(t, testDataFolder+"configExample.json", &c)
 	repository.StoreConfig(c)
 
 	handler.ServeHTTP(res, req)
 
-	testutil.AssertEqual(t, res.Code, http.StatusOK)
-	testutil.AssertEqual(t, res.Header().Get("Content-Type"), "application/json; charset=utf-8")
-	testutil.AssertJSONEqual(t, res.Body.String(), testutil.GetTestFileAsString(t, testDataFolder+"configExample.json"))
+	test.AssertEqual(t, res.Code, http.StatusOK)
+	test.AssertEqual(t, res.Header().Get("Content-Type"), "application/json; charset=utf-8")
+	test.AssertJSONEqual(t, res.Body.String(), test.GetTestFileAsString(t, testDataFolder+"configExample.json"))
 }
 
 func TestConfigHandler_GetConfig_GroupNotFound(t *testing.T) {
 	req, err := http.NewRequest(http.MethodGet, "/config/someOtherGroup/someId", nil)
-	testutil.AssertNotError(t, err)
+	test.AssertNotError(t, err)
 
 	res := httptest.NewRecorder()
 	repository := memory.NewRepository()
@@ -207,14 +207,14 @@ func TestConfigHandler_GetConfig_GroupNotFound(t *testing.T) {
 
 	handler.ServeHTTP(res, req)
 
-	testutil.AssertEqual(t, res.Code, http.StatusNotFound)
-	testutil.AssertEqual(t, res.Header().Get("Content-Type"), "text/plain; charset=utf-8")
-	testutil.AssertEqual(t, res.Body.String(), listing.ErrGroupNotFound.Error()+"\n")
+	test.AssertEqual(t, res.Code, http.StatusNotFound)
+	test.AssertEqual(t, res.Header().Get("Content-Type"), "text/plain; charset=utf-8")
+	test.AssertEqual(t, res.Body.String(), listing.ErrGroupNotFound.Error()+"\n")
 }
 
 func TestConfigHandler_GetConfig_ConfigNotFound(t *testing.T) {
 	req, err := http.NewRequest(http.MethodGet, "/config/someGroup/someOtherId", nil)
-	testutil.AssertNotError(t, err)
+	test.AssertNotError(t, err)
 
 	res := httptest.NewRecorder()
 	repository := memory.NewRepository()
@@ -230,20 +230,20 @@ func TestConfigHandler_GetConfig_ConfigNotFound(t *testing.T) {
 
 	handler.ServeHTTP(res, req)
 
-	testutil.AssertEqual(t, res.Code, http.StatusNotFound)
-	testutil.AssertEqual(t, res.Header().Get("Content-Type"), "text/plain; charset=utf-8")
-	testutil.AssertEqual(t, res.Body.String(), listing.ErrConfigNotFound.Error()+"\n")
+	test.AssertEqual(t, res.Code, http.StatusNotFound)
+	test.AssertEqual(t, res.Header().Get("Content-Type"), "text/plain; charset=utf-8")
+	test.AssertEqual(t, res.Body.String(), listing.ErrConfigNotFound.Error()+"\n")
 }
 
 func TestConfigHandler_pathValidation(t *testing.T) {
-	testutil.AssertEqual(t, invalidConfigPath("/grp"), false)
-	testutil.AssertEqual(t, invalidConfigPath("/grp/"), false)
-	testutil.AssertEqual(t, invalidConfigPath("/grp/config"), false)
-	testutil.AssertEqual(t, invalidConfigPath("/grp/config/"), false)
+	test.AssertEqual(t, invalidConfigPath("/grp"), false)
+	test.AssertEqual(t, invalidConfigPath("/grp/"), false)
+	test.AssertEqual(t, invalidConfigPath("/grp/config"), false)
+	test.AssertEqual(t, invalidConfigPath("/grp/config/"), false)
 
-	testutil.AssertEqual(t, invalidConfigPath(""), true)
-	testutil.AssertEqual(t, invalidConfigPath("/"), true)
-	testutil.AssertEqual(t, invalidConfigPath("/grp/config/stuff"), true)
-	testutil.AssertEqual(t, invalidConfigPath("/grp/config/stuff/"), true)
-	testutil.AssertEqual(t, invalidConfigPath("/grp/config/stuff/morestuff"), true)
+	test.AssertEqual(t, invalidConfigPath(""), true)
+	test.AssertEqual(t, invalidConfigPath("/"), true)
+	test.AssertEqual(t, invalidConfigPath("/grp/config/stuff"), true)
+	test.AssertEqual(t, invalidConfigPath("/grp/config/stuff/"), true)
+	test.AssertEqual(t, invalidConfigPath("/grp/config/stuff/morestuff"), true)
 }

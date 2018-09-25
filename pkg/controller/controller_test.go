@@ -4,7 +4,7 @@ import (
 	"github.com/larwef/ki/pkg/adding"
 	"github.com/larwef/ki/pkg/listing"
 	"github.com/larwef/ki/pkg/repository/memory"
-	"github.com/larwef/ki/testutil"
+	"github.com/larwef/ki/test"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -12,7 +12,7 @@ import (
 
 func TestBaseHttpHandler_InvalidPath(t *testing.T) {
 	req, err := http.NewRequest(http.MethodGet, "/invalidpath", nil)
-	testutil.AssertNotError(t, err)
+	test.AssertNotError(t, err)
 
 	res := httptest.NewRecorder()
 	repository := memory.NewRepository()
@@ -20,7 +20,7 @@ func TestBaseHttpHandler_InvalidPath(t *testing.T) {
 
 	handler.ServeHTTP(res, req)
 
-	testutil.AssertEqual(t, res.Code, http.StatusNotFound)
-	testutil.AssertEqual(t, res.Header().Get("Content-Type"), "text/plain; charset=utf-8")
-	testutil.AssertEqual(t, res.Body.String(), "Not Found\n")
+	test.AssertEqual(t, res.Code, http.StatusNotFound)
+	test.AssertEqual(t, res.Header().Get("Content-Type"), "text/plain; charset=utf-8")
+	test.AssertEqual(t, res.Body.String(), "Not Found\n")
 }

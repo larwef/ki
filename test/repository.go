@@ -1,13 +1,10 @@
-package commontests
+package test
 
 import (
 	"github.com/larwef/ki/pkg/adding"
 	"github.com/larwef/ki/pkg/listing"
-	"github.com/larwef/ki/testutil"
 	"testing"
 )
-
-// TODO: Check if this is according to best practise. Its certainly useful to have common test for different repositories, but they should perhaps be structured differently.
 
 // Repo has to satisfy adding and listing repository. Used to make tests that can cover all (or at least several) implementations
 // of repository
@@ -16,6 +13,7 @@ type Repo interface {
 	listing.Repository
 }
 
+// StoreAndRetrieveGroup tests that a group object can be stored and subsequently retrieved
 func StoreAndRetrieveGroup(t *testing.T, repo Repo, cleanup func()) {
 	defer cleanup()
 	grp := adding.Group{
@@ -23,14 +21,15 @@ func StoreAndRetrieveGroup(t *testing.T, repo Repo, cleanup func()) {
 	}
 
 	err := repo.StoreGroup(grp)
-	testutil.AssertNotError(t, err)
+	AssertNotError(t, err)
 
 	retrieveGrp, err := repo.RetrieveGroup("someGroup")
-	testutil.AssertNotError(t, err)
-	testutil.AssertEqual(t, retrieveGrp.ID, grp.ID)
+	AssertNotError(t, err)
+	AssertEqual(t, retrieveGrp.ID, grp.ID)
 }
 
-func StoreGroup_NotOverWrite(t *testing.T, repo Repo, cleanup func()) {
+// StoreGroupAndNotOverWrite tests that when store group is called on an existing group it will not overwrite the existing group
+func StoreGroupAndNotOverWrite(t *testing.T, repo Repo, cleanup func()) {
 	defer cleanup()
 
 	grp := adding.Group{
@@ -39,10 +38,10 @@ func StoreGroup_NotOverWrite(t *testing.T, repo Repo, cleanup func()) {
 	}
 
 	err := repo.StoreGroup(grp)
-	testutil.AssertNotError(t, err)
+	AssertNotError(t, err)
 
 	_, err = repo.RetrieveGroup("someGroup")
-	testutil.AssertNotError(t, err)
+	AssertNotError(t, err)
 
 	newGrp := adding.Group{
 		ID:      "someGroup",
@@ -50,11 +49,12 @@ func StoreGroup_NotOverWrite(t *testing.T, repo Repo, cleanup func()) {
 	}
 
 	err = repo.StoreGroup(newGrp)
-	testutil.AssertIsError(t, err)
-	testutil.AssertEqual(t, err, adding.ErrGroupConflict)
+	AssertIsError(t, err)
+	AssertEqual(t, err, adding.ErrGroupConflict)
 }
 
-func RetrieveGroup_GroupNotExist(t *testing.T, repo Repo, cleanup func()) {
+// RetrieveGroupWhenGroupNotExist tests retrieving a group that doesnt exist
+func RetrieveGroupWhenGroupNotExist(t *testing.T, repo Repo, cleanup func()) {
 	defer cleanup()
 
 	grp := adding.Group{
@@ -62,12 +62,13 @@ func RetrieveGroup_GroupNotExist(t *testing.T, repo Repo, cleanup func()) {
 	}
 
 	err := repo.StoreGroup(grp)
-	testutil.AssertNotError(t, err)
+	AssertNotError(t, err)
 
 	_, err = repo.RetrieveGroup("someOtherGroup")
-	testutil.AssertEqual(t, err, listing.ErrGroupNotFound)
+	AssertEqual(t, err, listing.ErrGroupNotFound)
 }
 
+// StoreAndRetrieveConfig tests storing and subsequently retrieving a Config
 func StoreAndRetrieveConfig(t *testing.T, repo Repo, cleanup func()) {
 	defer cleanup()
 
@@ -81,17 +82,18 @@ func StoreAndRetrieveConfig(t *testing.T, repo Repo, cleanup func()) {
 	}
 
 	err := repo.StoreGroup(grp)
-	testutil.AssertNotError(t, err)
+	AssertNotError(t, err)
 	err = repo.StoreConfig(conf)
-	testutil.AssertNotError(t, err)
+	AssertNotError(t, err)
 
 	retrieveConf, err := repo.RetrieveConfig("someGroup", "someConfig")
-	testutil.AssertNotError(t, err)
-	testutil.AssertEqual(t, retrieveConf.ID, conf.ID)
-	testutil.AssertEqual(t, retrieveConf.Group, "someGroup")
+	AssertNotError(t, err)
+	AssertEqual(t, retrieveConf.ID, conf.ID)
+	AssertEqual(t, retrieveConf.Group, "someGroup")
 }
 
-func StoreConfig_NoDuplicateInGroup(t *testing.T, repo Repo, cleanup func()) {
+// StoreConfigNoDuplicateInGroup tests that when adding a group with the same id, the Group object wont have duplicates in its Config array
+func StoreConfigNoDuplicateInGroup(t *testing.T, repo Repo, cleanup func()) {
 	defer cleanup()
 
 	grp := adding.Group{
@@ -115,22 +117,23 @@ func StoreConfig_NoDuplicateInGroup(t *testing.T, repo Repo, cleanup func()) {
 	}
 
 	err := repo.StoreGroup(grp)
-	testutil.AssertNotError(t, err)
+	AssertNotError(t, err)
 
 	err = repo.StoreConfig(conf1)
-	testutil.AssertNotError(t, err)
+	AssertNotError(t, err)
 	err = repo.StoreConfig(conf2)
-	testutil.AssertNotError(t, err)
+	AssertNotError(t, err)
 	err = repo.StoreConfig(conf3)
-	testutil.AssertNotError(t, err)
+	AssertNotError(t, err)
 
 	newGrp, err := repo.RetrieveGroup("someGroup")
-	testutil.AssertNotError(t, err)
-	testutil.AssertEqual(t, newGrp.ID, grp.ID)
-	testutil.AssertEqual(t, len(newGrp.Configs), 2)
+	AssertNotError(t, err)
+	AssertEqual(t, newGrp.ID, grp.ID)
+	AssertEqual(t, len(newGrp.Configs), 2)
 }
 
-func StoreConfig_GroupNotExist(t *testing.T, repo Repo, cleanup func()) {
+// StoreConfigWhenGroupNotExist tests storing a Config when the Group doesnt exist
+func StoreConfigWhenGroupNotExist(t *testing.T, repo Repo, cleanup func()) {
 	defer cleanup()
 
 	grp := adding.Group{
@@ -143,12 +146,13 @@ func StoreConfig_GroupNotExist(t *testing.T, repo Repo, cleanup func()) {
 	}
 
 	err := repo.StoreGroup(grp)
-	testutil.AssertNotError(t, err)
+	AssertNotError(t, err)
 	err = repo.StoreConfig(conf)
-	testutil.AssertEqual(t, err, listing.ErrGroupNotFound)
+	AssertEqual(t, err, listing.ErrGroupNotFound)
 }
 
-func RetrieveConfig_GroupNotExist(t *testing.T, repo Repo, cleanup func()) {
+// RetrieveConfigWhenGroupNotExist tests retireving a Config with a non existing Group
+func RetrieveConfigWhenGroupNotExist(t *testing.T, repo Repo, cleanup func()) {
 	defer cleanup()
 
 	grp := adding.Group{
@@ -161,15 +165,16 @@ func RetrieveConfig_GroupNotExist(t *testing.T, repo Repo, cleanup func()) {
 	}
 
 	err := repo.StoreGroup(grp)
-	testutil.AssertNotError(t, err)
+	AssertNotError(t, err)
 	err = repo.StoreConfig(conf)
-	testutil.AssertNotError(t, err)
+	AssertNotError(t, err)
 
 	_, err = repo.RetrieveConfig("someOtherGroup", "someConfig")
-	testutil.AssertEqual(t, err, listing.ErrGroupNotFound)
+	AssertEqual(t, err, listing.ErrGroupNotFound)
 }
 
-func RetrieveConfig_ConfigNotExist(t *testing.T, repo Repo, cleanup func()) {
+// RetrieveConfigWhenConfigNotExist tests retireving a non existing Config
+func RetrieveConfigWhenConfigNotExist(t *testing.T, repo Repo, cleanup func()) {
 	defer cleanup()
 
 	grp := adding.Group{
@@ -182,10 +187,10 @@ func RetrieveConfig_ConfigNotExist(t *testing.T, repo Repo, cleanup func()) {
 	}
 
 	err := repo.StoreGroup(grp)
-	testutil.AssertNotError(t, err)
+	AssertNotError(t, err)
 	err = repo.StoreConfig(conf)
-	testutil.AssertNotError(t, err)
+	AssertNotError(t, err)
 
 	_, err = repo.RetrieveConfig("someGroup", "someOtherConfig")
-	testutil.AssertEqual(t, err, listing.ErrConfigNotFound)
+	AssertEqual(t, err, listing.ErrConfigNotFound)
 }
