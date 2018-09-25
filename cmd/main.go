@@ -1,11 +1,11 @@
 package main
 
 import (
-	"github.com/larwef/ki/pkg/adding"
-	"github.com/larwef/ki/pkg/controller"
-	"github.com/larwef/ki/pkg/listing"
-	"github.com/larwef/ki/pkg/repository/local"
-	"github.com/larwef/ki/pkg/repository/memory"
+	"github.com/larwef/ki/internal/adding"
+	"github.com/larwef/ki/internal/controller"
+	"github.com/larwef/ki/internal/listing"
+	"github.com/larwef/ki/internal/repository/local"
+	"github.com/larwef/ki/internal/repository/memory"
 	"log"
 	"net/http"
 	"time"

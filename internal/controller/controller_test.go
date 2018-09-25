@@ -1,9 +1,9 @@
 package controller
 
 import (
-	"github.com/larwef/ki/pkg/adding"
-	"github.com/larwef/ki/pkg/listing"
-	"github.com/larwef/ki/pkg/repository/memory"
+	"github.com/larwef/ki/internal/adding"
+	"github.com/larwef/ki/internal/listing"
+	"github.com/larwef/ki/internal/repository/memory"
 	"github.com/larwef/ki/test"
 	"net/http"
 	"net/http/httptest"

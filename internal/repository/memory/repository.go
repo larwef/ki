@@ -1,8 +1,8 @@
 package memory
 
 import (
-	"github.com/larwef/ki/pkg/adding"
-	"github.com/larwef/ki/pkg/listing"
+	"github.com/larwef/ki/internal/adding"
+	"github.com/larwef/ki/internal/listing"
 )
 
 // Repository representa a in memory storge object

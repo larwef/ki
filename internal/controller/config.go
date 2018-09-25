@@ -2,8 +2,8 @@ package controller
 
 import (
 	"encoding/json"
-	"github.com/larwef/ki/pkg/adding"
-	"github.com/larwef/ki/pkg/listing"
+	"github.com/larwef/ki/internal/adding"
+	"github.com/larwef/ki/internal/listing"
 	"log"
 	"net/http"
 	"time"
