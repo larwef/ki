@@ -15,6 +15,21 @@ import (
 
 var testDataFolder = "../../../test/testdata/"
 
+func TestHandler_HealthHandler(t *testing.T) {
+	req, err := http.NewRequest(http.MethodGet, "/health", nil)
+	test.AssertNotError(t, err)
+
+	res := httptest.NewRecorder()
+	repository := memory.NewRepository()
+	handler := NewHandler(adding.NewService(repository), listing.NewService(repository))
+
+	handler.ServeHTTP(res, req)
+
+	test.AssertEqual(t, res.Code, http.StatusOK)
+	test.AssertEqual(t, res.Header().Get("Content-Type"), contentType)
+	test.AssertJSONEqual(t, res.Body.String(), test.GetTestFileAsString(t, testDataFolder+"healthResponse.json"))
+}
+
 func TestHandler_InvalidPath(t *testing.T) {
 	req, err := http.NewRequest(http.MethodGet, "/invalidpath", nil)
 	test.AssertNotError(t, err)
@@ -70,7 +85,7 @@ func TestHandler_PutGroup(t *testing.T) {
 
 	handler.ServeHTTP(res, req)
 	test.AssertEqual(t, res.Code, http.StatusOK)
-	test.AssertEqual(t, res.Header().Get("Content-Type"), "application/json; charset=utf-8")
+	test.AssertEqual(t, res.Header().Get("Content-Type"), contentType)
 
 	var grpResponse listing.Group
 	err = json.NewDecoder(res.Body).Decode(&grpResponse)
@@ -95,7 +110,7 @@ func TestHandler_GetGroup(t *testing.T) {
 
 	handler.ServeHTTP(res, req)
 	test.AssertEqual(t, res.Code, http.StatusOK)
-	test.AssertEqual(t, res.Header().Get("Content-Type"), "application/json; charset=utf-8")
+	test.AssertEqual(t, res.Header().Get("Content-Type"), contentType)
 
 	var grpResponse listing.Group
 	err = json.NewDecoder(res.Body).Decode(&grpResponse)
@@ -142,7 +157,7 @@ func TestHandler_PutConfig(t *testing.T) {
 	handler.ServeHTTP(res, req)
 
 	test.AssertEqual(t, res.Code, http.StatusOK)
-	test.AssertEqual(t, res.Header().Get("Content-Type"), "application/json; charset=utf-8")
+	test.AssertEqual(t, res.Header().Get("Content-Type"), contentType)
 
 	var configResponse listing.Config
 	err = json.NewDecoder(res.Body).Decode(&configResponse)
@@ -200,7 +215,7 @@ func TestHandler_GetConfig(t *testing.T) {
 	handler.ServeHTTP(res, req)
 
 	test.AssertEqual(t, res.Code, http.StatusOK)
-	test.AssertEqual(t, res.Header().Get("Content-Type"), "application/json; charset=utf-8")
+	test.AssertEqual(t, res.Header().Get("Content-Type"), contentType)
 	test.AssertJSONEqual(t, res.Body.String(), test.GetTestFileAsString(t, testDataFolder+"configExample.json"))
 }
 
@@ -248,17 +263,4 @@ func TestHandler_GetConfig_ConfigNotFound(t *testing.T) {
 	test.AssertEqual(t, res.Code, http.StatusNotFound)
 	test.AssertEqual(t, res.Header().Get("Content-Type"), "text/plain; charset=utf-8")
 	test.AssertEqual(t, res.Body.String(), listing.ErrConfigNotFound.Error()+"\n")
-}
-
-func TestHandler_pathValidation(t *testing.T) {
-	test.AssertEqual(t, invalidConfigPath("/grp"), false)
-	test.AssertEqual(t, invalidConfigPath("/grp/"), false)
-	test.AssertEqual(t, invalidConfigPath("/grp/config"), false)
-	test.AssertEqual(t, invalidConfigPath("/grp/config/"), false)
-
-	test.AssertEqual(t, invalidConfigPath(""), true)
-	test.AssertEqual(t, invalidConfigPath("/"), true)
-	test.AssertEqual(t, invalidConfigPath("/grp/config/stuff"), true)
-	test.AssertEqual(t, invalidConfigPath("/grp/config/stuff/"), true)
-	test.AssertEqual(t, invalidConfigPath("/grp/config/stuff/morestuff"), true)
 }
