@@ -3,7 +3,6 @@ package crud
 import (
 	"github.com/google/uuid"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 )
@@ -11,12 +10,19 @@ import (
 type requestLogger struct {
 	breadCrumb string
 	req        *http.Request
+	io.ReadCloser
 }
 
-func (r *requestLogger) Write(p []byte) (int, error) {
+func (r *requestLogger) Read(p []byte) (int, error) {
+	n, err := r.ReadCloser.Read(p)
 	log.Printf("Inbound message:\nBreadcrumb: %s\nHost: %s\nRemoteAddr: %s\nMethod: %s\nProto: %s\nPath: %s\nPayload: %s",
 		r.breadCrumb, r.req.Host, r.req.RemoteAddr, r.req.Method, r.req.Proto, r.req.URL.Path, string(p))
-	return len(p), nil
+
+	return n, err
+}
+
+func (r *requestLogger) Close() error {
+	return r.ReadCloser.Close()
 }
 
 type responseLogger struct {
@@ -46,10 +52,11 @@ func inOutLog(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 		breadCrumb := uuid.New().String()
 
-		req.Body = ioutil.NopCloser(io.TeeReader(req.Body, &requestLogger{
+		req.Body = &requestLogger{
 			breadCrumb: breadCrumb,
 			req:        req,
-		}))
+			ReadCloser: req.Body,
+		}
 
 		responseWriter := responseLogger{
 			breadcrumb:     breadCrumb,
