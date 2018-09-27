@@ -1,55 +1,61 @@
 package crud
 
 import (
-	"bytes"
+	"github.com/google/uuid"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
 )
 
-// TODO: Check if this could be done more elegantly
-type requestLogger struct{}
+type requestLogger struct {
+	breadCrumb string
+	req        *http.Request
+}
 
-func (il *requestLogger) logRequest(req *http.Request) {
-	var bodyString string
-
-	if req.Body != nil {
-		b, err := ioutil.ReadAll(req.Body)
-		if err != nil {
-			log.Println("Error reading incomming request")
-		}
-		bodyString = string(b)
-		req.Body = ioutil.NopCloser(bytes.NewBuffer(b))
-	}
-
-	log.Printf("Inbound message:\nHost: %s\nRemoteAddr: %s\nMethod: %s\nProto: %s\nPayload: %s", req.Host, req.RemoteAddr, req.Method, req.Proto, bodyString)
+func (r *requestLogger) Write(p []byte) (int, error) {
+	log.Printf("Inbound message:\nBreadcrumb: %s\nHost: %s\nRemoteAddr: %s\nMethod: %s\nProto: %s\nPath: %s\nPayload: %s",
+		r.breadCrumb, r.req.Host, r.req.RemoteAddr, r.req.Method, r.req.Proto, r.req.URL.Path, string(p))
+	return len(p), nil
 }
 
 type responseLogger struct {
+	breadcrumb string
 	http.ResponseWriter
 	status int
 }
 
-func (w *responseLogger) WriteHeader(status int) {
-	w.status = status
-	w.ResponseWriter.WriteHeader(status)
+func (r *responseLogger) WriteHeader(status int) {
+	r.status = status
+	r.ResponseWriter.WriteHeader(status)
 }
 
-func (w *responseLogger) Write(b []byte) (int, error) {
-	if w.status == 0 {
-		w.status = 200
+func (r *responseLogger) Write(p []byte) (int, error) {
+	if r.status == 0 {
+		r.status = 200
 	}
 
-	log.Printf("Outbound message:\nResponse-Code: %d\nHeaders: %v\nPayload: %s", w.status, w.ResponseWriter.Header(), string(b))
+	log.Printf("Outbound message:\nBreadcrumb: %s\nResponse-Code: %d\nHeaders: %v\nPayload: %s",
+		r.breadcrumb, r.status, r.ResponseWriter.Header(), string(p))
 
-	return w.ResponseWriter.Write(b)
+	return r.ResponseWriter.Write(p)
 }
 
+// TODO: This doesnt log GET requests. Think its because the TeeReader writes as is it read and since GET doesnt have a body the requestLogger Write method doesnt get called
 func inOutLog(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		rl := requestLogger{}
-		rl.logRequest(req)
-		responseWriter := responseLogger{ResponseWriter: res}
+		breadCrumb := uuid.New().String()
+
+		req.Body = ioutil.NopCloser(io.TeeReader(req.Body, &requestLogger{
+			breadCrumb: breadCrumb,
+			req:        req,
+		}))
+
+		responseWriter := responseLogger{
+			breadcrumb:     breadCrumb,
+			ResponseWriter: res,
+		}
+
 		h.ServeHTTP(&responseWriter, req)
 	})
 }
