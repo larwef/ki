@@ -41,21 +41,26 @@ func (r *responseLogger) Write(p []byte) (int, error) {
 		r.status = 200
 	}
 
-	log.Printf("Outbound message:\nBreadcrumb: %s\nResponse-Code: %d\nHeaders: %v\nPayload: %s",
+	log.Printf("Outbound Response:\nBreadcrumb: %s\nResponse-Code: %d\nHeaders: %v\nPayload: %s",
 		r.breadcrumb, r.status, r.ResponseWriter.Header(), string(p))
 
 	return r.ResponseWriter.Write(p)
 }
 
-// TODO: This doesnt log GET requests. Think its because the TeeReader writes as is it read and since GET doesnt have a body the requestLogger Write method doesnt get called
 func inOutLog(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 		breadCrumb := uuid.New().String()
 
-		req.Body = &requestLogger{
-			breadCrumb: breadCrumb,
-			req:        req,
-			ReadCloser: req.Body,
+		// Workaround for logging GET request
+		if req.Method == http.MethodGet {
+			log.Printf("Inbound Request:\nBreadcrumb: %s\nHost: %s\nRemoteAddr: %s\nMethod: %s\nProto: %s\nPath: %s\n",
+				breadCrumb, req.Host, req.RemoteAddr, req.Method, req.Proto, req.URL.Path)
+		} else {
+			req.Body = &requestLogger{
+				breadCrumb: breadCrumb,
+				req:        req,
+				ReadCloser: req.Body,
+			}
 		}
 
 		responseWriter := responseLogger{

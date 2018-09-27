@@ -16,7 +16,7 @@ import (
 var testDataFolder = "../../../test/testdata/"
 
 func TestHandler_HealthHandler(t *testing.T) {
-	req, err := http.NewRequest(http.MethodGet, "/health", nil)
+	req, err := http.NewRequest(http.MethodGet, healthPath, nil)
 	test.AssertNotError(t, err)
 
 	res := httptest.NewRecorder()
