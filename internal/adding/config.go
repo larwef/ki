@@ -7,10 +7,10 @@ import (
 
 // Config represents a config resource to be added
 type Config struct {
-	ID           string
-	Name         string
-	LastModified time.Time
-	Version      int
-	Group        string
-	Properties   json.RawMessage
+	ID           string          `json:"id"`
+	Name         string          `json:"name"`
+	LastModified time.Time       `json:"lastModified"`
+	Version      int             `json:"version"`
+	Group        string          `json:"group"`
+	Properties   json.RawMessage `json:"properties"`
 }
