@@ -103,7 +103,6 @@ func (handler *Handler) handleGroupAction(h http.Handler) http.Handler {
 				add(handler.storeGroup).
 				add(handler.retrieveGroup).
 				ServeHTTP(res, req)
-
 			break
 		case http.MethodGet:
 			newHandlerChain(h).
@@ -124,7 +123,6 @@ func (handler *Handler) handleConfigAction(h http.Handler) http.Handler {
 				add(handler.storeConfig).
 				add(handler.retrieveConfig).
 				ServeHTTP(res, req)
-
 			break
 		case http.MethodGet:
 			newHandlerChain(h).
@@ -143,7 +141,7 @@ func (handler *Handler) storeGroup(h http.Handler) http.Handler {
 
 		if err := json.NewDecoder(req.Body).Decode(&grp); err != nil {
 			log.Printf("Error: %v", err)
-			http.Error(res, "Unable to unmarshal request object", http.StatusInternalServerError)
+			http.Error(res, "Unable to unmarshal request object", http.StatusBadRequest)
 			return
 		}
 

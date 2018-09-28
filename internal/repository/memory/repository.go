@@ -3,10 +3,12 @@ package memory
 import (
 	"github.com/larwef/ki/internal/adding"
 	"github.com/larwef/ki/internal/listing"
+	"sync"
 )
 
 // Repository representa a in memory storge object
 type Repository struct {
+	rwLock  sync.RWMutex
 	groups  map[string]Group
 	configs map[string]Config
 }
@@ -21,6 +23,9 @@ func NewRepository() *Repository {
 
 // StoreGroup stores a config in the memory storage. Will not overwrite existing Group object.
 func (r *Repository) StoreGroup(g adding.Group) error {
+	r.rwLock.Lock()
+	defer r.rwLock.Unlock()
+
 	if _, exists := r.groups[g.ID]; exists {
 		return adding.ErrGroupConflict
 	}
@@ -35,6 +40,9 @@ func (r *Repository) StoreGroup(g adding.Group) error {
 
 // RetrieveGroup retrieves a group from the memory storage specified by id
 func (r *Repository) RetrieveGroup(id string) (*listing.Group, error) {
+	r.rwLock.RLock()
+	defer r.rwLock.RUnlock()
+
 	if val, exists := r.groups[id]; exists {
 		return &listing.Group{
 			ID:      val.ID,
@@ -47,6 +55,9 @@ func (r *Repository) RetrieveGroup(id string) (*listing.Group, error) {
 
 // StoreConfig stores a config in the memory storage
 func (r *Repository) StoreConfig(c adding.Config) error {
+	r.rwLock.Lock()
+	defer r.rwLock.Unlock()
+
 	grp, exists := r.groups[c.Group]
 	if !exists {
 		return listing.ErrGroupNotFound
@@ -83,6 +94,8 @@ func (r *Repository) StoreConfig(c adding.Config) error {
 // RetrieveConfig retrieves a config from the memory storage spesified by groupID and id of the config
 // TODO: Doesnt behave same way as local. Cant handle configs with same id and different group. Improve and make test.
 func (r *Repository) RetrieveConfig(groupID string, id string) (*listing.Config, error) {
+	r.rwLock.RLock()
+	defer r.rwLock.RUnlock()
 
 	if _, exists := r.groups[groupID]; !exists {
 		return &listing.Config{}, listing.ErrGroupNotFound
