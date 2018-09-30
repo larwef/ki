@@ -18,7 +18,7 @@ const (
 	contentType = "application/json; charset=utf-8"
 )
 
-// Handler handles is the entry point for requests and handles initial routing
+// Handler handles is the entry point for requests and handles routing and processing
 type Handler struct {
 	adding  adding.Service
 	listing listing.Service

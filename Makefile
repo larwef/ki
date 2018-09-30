@@ -18,6 +18,9 @@ build:
 	GOOS=linux go build -o $(TARGET)/app cmd/main.go
 	zip -j $(TARGET)/deployment.zip $(TARGET)/app
 
+proto:
+	protoc -I internal/http/grpc/ internal/http/grpc/*.proto --go_out=plugins=grpc:internal/http/grpc
+
 clean:
 	rm -rf $(TARGET)
 

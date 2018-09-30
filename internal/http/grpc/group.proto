@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package grpc;
+
+service GroupService {
+    rpc StoreGroup (StoreGroupRequest) returns (Group);
+    rpc RetrieveGroup (RetrieveGroupRequest) returns (Group);
+}
+
+message Group {
+    string id = 1;
+    repeated string config_ids = 2;
+}
+
+message StoreGroupRequest {
+    string id = 1;
+}
+
+message RetrieveGroupRequest {
+    string id = 1;
+}
