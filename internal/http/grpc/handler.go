@@ -40,11 +40,14 @@ func (s *Handler) RetrieveGroup(ctx context.Context, req *RetrieveGroupRequest) 
 
 func (s *Handler) retrieveGroup(groupID string) (*Group, error) {
 	grp, err := s.listing.GetGroup(groupID)
+	if err != nil {
+		return &Group{}, err
+	}
 
 	return &Group{
 		Id:        grp.ID,
 		ConfigIds: grp.Configs,
-	}, err
+	}, nil
 }
 
 // StoreConfig maps a request to a config object and stores it in the repository. Subsequently fetches the object and returns it
@@ -72,6 +75,9 @@ func (s *Handler) RetrieveConfig(ctx context.Context, req *RetrieveConfigRequest
 
 func (s *Handler) retrieveConfig(groupID string, configID string) (*Config, error) {
 	conf, err := s.listing.GetConfig(groupID, configID)
+	if err != nil {
+		return &Config{}, err
+	}
 
 	return &Config{
 		Id:           conf.ID,
@@ -80,5 +86,5 @@ func (s *Handler) retrieveConfig(groupID string, configID string) (*Config, erro
 		Version:      int32(conf.Version),
 		Group:        conf.Group,
 		Properties:   conf.Properties,
-	}, err
+	}, nil
 }

@@ -1,10 +1,14 @@
 package grpc
 
 import (
+	"bytes"
+	"context"
+	"encoding/json"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 	"log"
 	"net"
+	"time"
 )
 
 // Server represents a grpc server object
@@ -33,4 +37,27 @@ func (s *Server) Serve(signal chan bool) {
 func (s *Server) GracefulShutdown() {
 	log.Printf("Shutting down grpc server on %s\n", s.Listener.Addr().String())
 	s.Server.GracefulStop()
+}
+
+// InOutLoggingUnaryInterceptor provides a logging interceptor that can be attached to gRPC server
+func InOutLoggingUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	start := time.Now()
+
+	reqPayload, err := json.Marshal(req)
+	if err != nil {
+		reqPayload = bytes.NewBufferString("Error marshalling request").Bytes()
+	}
+
+	log.Printf("Innbound gRPC request:\nMethod: %q\nPayload: %s\n", info.FullMethod, string(reqPayload))
+
+	res, resErr := handler(ctx, req)
+
+	resPayload, err := json.Marshal(res)
+	if err != nil {
+		resPayload = bytes.NewBufferString("Error marshalling response").Bytes()
+	}
+
+	log.Printf("Outbound gRPC response:\nDuration: %s\nPayload: %s\nReturned with Error: %v\n", time.Since(start), string(resPayload), resErr)
+
+	return res, resErr
 }

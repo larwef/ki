@@ -78,13 +78,13 @@ func main() {
 
 	// gRPC
 	if apiType&GRPC != 0 {
-		listener, err := net.Listen("tcp", ":8080")
+		listener, err := net.Listen("tcp", ":8081")
 		if err != nil {
 			log.Fatalf("failed to listen: %v", err)
 		}
 
 		grpcServer := &grpc.Server{
-			Server:   goGrpc.NewServer(),
+			Server:   goGrpc.NewServer(goGrpc.UnaryInterceptor(grpc.InOutLoggingUnaryInterceptor)),
 			Listener: listener,
 			Handler:  grpc.NewHandler(add, lst),
 		}
