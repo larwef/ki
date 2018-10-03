@@ -95,6 +95,25 @@ func TestHandler_PutGroup(t *testing.T) {
 	test.AssertEqual(t, len(grpResponse.Configs), 0)
 }
 
+func TestHandler_PutGroup_Duplicate(t *testing.T) {
+	req, err := http.NewRequest(http.MethodPut, "/config/someGroup", bytes.NewBufferString("{}"))
+	test.AssertNotError(t, err)
+
+	res := httptest.NewRecorder()
+	repository := memory.NewRepository()
+	handler := NewHandler(adding.NewService(repository), listing.NewService(repository))
+
+	repository.StoreGroup(adding.Group{
+		ID:      "someGroup",
+		Configs: []string{"config1", "config2", "config3"},
+	})
+
+	handler.ServeHTTP(res, req)
+	test.AssertEqual(t, res.Code, http.StatusConflict)
+	test.AssertEqual(t, res.Header().Get("Content-Type"), "text/plain; charset=utf-8")
+	test.AssertEqual(t, res.Body.String(), adding.ErrGroupConflict.Error()+"\n")
+}
+
 func TestHandler_GetGroup(t *testing.T) {
 	req, err := http.NewRequest(http.MethodGet, "/config/someGroup/", nil)
 	test.AssertNotError(t, err)

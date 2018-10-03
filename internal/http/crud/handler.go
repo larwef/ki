@@ -140,7 +140,6 @@ func (handler *Handler) storeGroup(h http.Handler) http.Handler {
 		var grp adding.Group
 
 		if err := json.NewDecoder(req.Body).Decode(&grp); err != nil {
-			log.Printf("Error: %v", err)
 			http.Error(res, "Unable to unmarshal request object", http.StatusBadRequest)
 			return
 		}
@@ -150,7 +149,6 @@ func (handler *Handler) storeGroup(h http.Handler) http.Handler {
 		_, grp.ID, _, _ = getPathVariables(req.URL.Path)
 
 		if err := handler.adding.AddGroup(grp); err != nil {
-			log.Printf("Error: %v", err)
 			writeServiceError(res, err)
 			return
 		}
@@ -171,7 +169,6 @@ func (handler *Handler) retrieveGroup(h http.Handler) http.Handler {
 		}
 
 		if err = json.NewEncoder(res).Encode(conf); err != nil {
-			log.Printf("Error: %v", err)
 			http.Error(res, "Error marshalling response", http.StatusInternalServerError)
 			return
 		}
@@ -185,7 +182,6 @@ func (handler *Handler) storeConfig(h http.Handler) http.Handler {
 		var conf adding.Config
 
 		if err := json.NewDecoder(req.Body).Decode(&conf); err != nil {
-			log.Printf("Error: %v", err)
 			http.Error(res, "Unable to unmarshal request object", http.StatusInternalServerError)
 			return
 		}
@@ -216,7 +212,6 @@ func (handler *Handler) retrieveConfig(h http.Handler) http.Handler {
 		}
 
 		if err = json.NewEncoder(res).Encode(conf); err != nil {
-			log.Printf("Error: %v", err)
 			http.Error(res, "Error marshalling response", http.StatusInternalServerError)
 			return
 		}
@@ -228,12 +223,12 @@ func (handler *Handler) retrieveConfig(h http.Handler) http.Handler {
 func writeServiceError(res http.ResponseWriter, err error) {
 	log.Printf("Error: %v", err)
 	switch err {
-	case adding.ErrGroupConflict:
-		fallthrough
 	case listing.ErrGroupNotFound:
 		fallthrough
 	case listing.ErrConfigNotFound:
 		http.Error(res, err.Error(), http.StatusNotFound)
+	case adding.ErrGroupConflict:
+		http.Error(res, err.Error(), http.StatusConflict)
 	default:
 		http.Error(res, "Internal Server Error", http.StatusInternalServerError)
 	}

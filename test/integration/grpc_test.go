@@ -15,14 +15,14 @@ import (
 	"testing"
 )
 
-var address = "localhost:8081"
-var testDataFolder = "../testdata/"
+var grpcAddress = "localhost:8081"
+var grpcTestDataFolder = "../testdata/"
 
 // Integration tests needs a fresh instance running locally to work. The easiest is to run the ./test-docker.sh script.
 
 func getConnection(t *testing.T) *goGrpc.ClientConn {
 	// Set up a connection to the server.
-	conn, err := goGrpc.Dial(address, goGrpc.WithInsecure())
+	conn, err := goGrpc.Dial(grpcAddress, goGrpc.WithInsecure())
 	if err != nil {
 		t.Fatalf("did not connect: %v", err)
 	}
@@ -30,71 +30,71 @@ func getConnection(t *testing.T) *goGrpc.ClientConn {
 	return conn
 }
 
-func Test_AddAndRetrieveGroup(t *testing.T) {
+func Test_gRPCAddAndRetrieveGroup(t *testing.T) {
 	conn := getConnection(t)
 	defer conn.Close()
 
 	groupClient := grpc.NewGroupServiceClient(conn)
 
-	storeGrpReq := &grpc.StoreGroupRequest{Id: "someGroup"}
+	storeGrpReq := &grpc.StoreGroupRequest{Id: "someGRPCGroup"}
 
 	storeGrpRes, err := groupClient.StoreGroup(context.Background(), storeGrpReq)
 	test.AssertNotError(t, err)
-	test.AssertEqual(t, storeGrpRes.Id, "someGroup")
+	test.AssertEqual(t, storeGrpRes.Id, "someGRPCGroup")
 	test.AssertEqual(t, len(storeGrpRes.ConfigIds), 0)
 
-	retrieveGrpReq := &grpc.RetrieveGroupRequest{Id: "someGroup"}
+	retrieveGrpReq := &grpc.RetrieveGroupRequest{Id: "someGRPCGroup"}
 
 	retrieveGroupRes, err := groupClient.RetrieveGroup(context.Background(), retrieveGrpReq)
 	test.AssertNotError(t, err)
-	test.AssertEqual(t, retrieveGroupRes.Id, "someGroup")
+	test.AssertEqual(t, retrieveGroupRes.Id, "someGRPCGroup")
 	test.AssertEqual(t, len(retrieveGroupRes.ConfigIds), 0)
 }
 
-func Test_AddGroup_Duplicate(t *testing.T) {
+func Test_gRPCAddGroup_Duplicate(t *testing.T) {
 	conn := getConnection(t)
 	defer conn.Close()
 
 	groupClient := grpc.NewGroupServiceClient(conn)
 
-	storeGrpReq := &grpc.StoreGroupRequest{Id: "someGroupConflict"}
+	storeGrpReq := &grpc.StoreGroupRequest{Id: "someGRPCGroupConflict"}
 
 	storeGrpRes, err := groupClient.StoreGroup(context.Background(), storeGrpReq)
 	test.AssertNotError(t, err)
-	test.AssertEqual(t, storeGrpRes.Id, "someGroupConflict")
+	test.AssertEqual(t, storeGrpRes.Id, "someGRPCGroupConflict")
 	test.AssertEqual(t, len(storeGrpRes.ConfigIds), 0)
 
 	storeGrpRes, err = groupClient.StoreGroup(context.Background(), storeGrpReq)
 	test.AssertEqual(t, strings.Contains(err.Error(), adding.ErrGroupConflict.Error()), true)
 }
 
-func Test_AddAndRetrieveConfig(t *testing.T) {
+func Test_gRPCAddAndRetrieveConfig(t *testing.T) {
 	conn := getConnection(t)
 	defer conn.Close()
 
 	groupClient := grpc.NewGroupServiceClient(conn)
 	configClient := grpc.NewConfigServiceClient(conn)
 
-	properties, err := ioutil.ReadFile(testDataFolder + "properties.json")
+	properties, err := ioutil.ReadFile(grpcTestDataFolder + "properties.json")
 	test.AssertNotError(t, err)
 
-	storeGrpReq := &grpc.StoreGroupRequest{Id: "someOtherGroup"}
+	storeGrpReq := &grpc.StoreGroupRequest{Id: "someGRPCOtherGroup"}
 
 	_, err = groupClient.StoreGroup(context.Background(), storeGrpReq)
 	test.AssertNotError(t, err)
 
 	storeConfigreq := &grpc.StoreConfigRequest{
-		Id:         "someId",
-		Name:       "someName",
-		Group:      "someOtherGroup",
+		Id:         "someGRPCId",
+		Name:       "someGRPCName",
+		Group:      "someGRPCOtherGroup",
 		Properties: properties,
 	}
 
 	storeConfigRes, err := configClient.StoreConfig(context.Background(), storeConfigreq)
 	test.AssertNotError(t, err)
-	test.AssertEqual(t, storeConfigRes.Id, "someId")
-	test.AssertEqual(t, storeConfigRes.Name, "someName")
-	test.AssertEqual(t, storeConfigRes.Group, "someOtherGroup")
+	test.AssertEqual(t, storeConfigRes.Id, "someGRPCId")
+	test.AssertEqual(t, storeConfigRes.Name, "someGRPCName")
+	test.AssertEqual(t, storeConfigRes.Group, "someGRPCOtherGroup")
 
 	var propMap map[string]interface{}
 	err = json.Unmarshal(storeConfigRes.Properties, &propMap)
@@ -106,15 +106,15 @@ func Test_AddAndRetrieveConfig(t *testing.T) {
 	test.AssertEqual(t, propMap["property5"], 12.1)
 
 	retrieveConfigReq := &grpc.RetrieveConfigRequest{
-		Id:      "someId",
-		GroupId: "someOtherGroup",
+		Id:      "someGRPCId",
+		GroupId: "someGRPCOtherGroup",
 	}
 
 	retrieveConfigRes, err := configClient.RetrieveConfig(context.Background(), retrieveConfigReq)
 	test.AssertNotError(t, err)
-	test.AssertEqual(t, retrieveConfigRes.Id, "someId")
-	test.AssertEqual(t, retrieveConfigRes.Name, "someName")
-	test.AssertEqual(t, retrieveConfigRes.Group, "someOtherGroup")
+	test.AssertEqual(t, retrieveConfigRes.Id, "someGRPCId")
+	test.AssertEqual(t, retrieveConfigRes.Name, "someGRPCName")
+	test.AssertEqual(t, retrieveConfigRes.Group, "someGRPCOtherGroup")
 
 	err = json.Unmarshal(retrieveConfigRes.Properties, &propMap)
 	test.AssertNotError(t, err)
@@ -125,53 +125,53 @@ func Test_AddAndRetrieveConfig(t *testing.T) {
 	test.AssertEqual(t, propMap["property5"], 12.1)
 }
 
-func Test_AddConfig_GroupNotFound(t *testing.T) {
+func Test_gRPCAddConfig_GroupNotFound(t *testing.T) {
 	conn := getConnection(t)
 	defer conn.Close()
 
 	configClient := grpc.NewConfigServiceClient(conn)
 
 	storeConfigReq := &grpc.StoreConfigRequest{
-		Id:         "someId",
-		Name:       "someName",
-		Group:      "someNonExistingGroup",
+		Id:         "someGRPCId",
+		Name:       "someGRPCName",
+		Group:      "someGRPCNonExistingGroup",
 	}
 
 	_, err := configClient.StoreConfig(context.Background(), storeConfigReq)
 	test.AssertEqual(t, strings.Contains(err.Error(), listing.ErrGroupNotFound.Error()), true)
 }
 
-func Test_RetrieveConfig_GroupNotFound(t *testing.T) {
+func Test_gRPCRetrieveConfig_GroupNotFound(t *testing.T) {
 	conn := getConnection(t)
 	defer conn.Close()
 
 	configClient := grpc.NewConfigServiceClient(conn)
 
 	retrieveConfigReq := &grpc.RetrieveConfigRequest{
-		Id:      "someId",
-		GroupId: "someNonExistingGroup",
+		Id:      "someGRPCId",
+		GroupId: "someGRPCNonExistingGroup",
 	}
 
 	_, err := configClient.RetrieveConfig(context.Background(), retrieveConfigReq)
 	test.AssertEqual(t, strings.Contains(err.Error(), listing.ErrGroupNotFound.Error()), true)
 }
 
-func Test_RetrieveConfig_ConfigNotFound(t *testing.T) {
+func Test_gRPCRetrieveConfig_ConfigNotFound(t *testing.T) {
 	conn := getConnection(t)
 	defer conn.Close()
 
 	configClient := grpc.NewConfigServiceClient(conn)
 	groupClient := grpc.NewGroupServiceClient(conn)
 
-	storeGrpReq := &grpc.StoreGroupRequest{Id: "someNewGroup"}
+	storeGrpReq := &grpc.StoreGroupRequest{Id: "someGRPCNewGroup"}
 
 	_, err := groupClient.StoreGroup(context.Background(), storeGrpReq)
 	test.AssertNotError(t, err)
 
 
 	retrieveConfigReq := &grpc.RetrieveConfigRequest{
-		Id:      "someNonExistingId",
-		GroupId: "someNewGroup",
+		Id:      "someGRPCNonExistingId",
+		GroupId: "someGRPCNewGroup",
 	}
 
 	_, err = configClient.RetrieveConfig(context.Background(), retrieveConfigReq)

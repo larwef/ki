@@ -26,6 +26,18 @@ func TestHandler_StoreGroup(t *testing.T) {
 	test.AssertEqual(t, len(res.ConfigIds), 0)
 }
 
+func TestHandler_StoreGroup_Duplicate(t *testing.T) {
+	repository := memory.NewRepository()
+	handler := NewHandler(adding.NewService(repository), listing.NewService(repository))
+
+	req := &StoreGroupRequest{Id: "someGroup"}
+	ctx := context.Background()
+	handler.StoreGroup(ctx, req)
+	_, err := handler.StoreGroup(ctx, req)
+
+	test.AssertEqual(t, err, adding.ErrGroupConflict)
+}
+
 func TestHandler_RetrieveGroup(t *testing.T) {
 	repository := memory.NewRepository()
 	handler := NewHandler(adding.NewService(repository), listing.NewService(repository))
