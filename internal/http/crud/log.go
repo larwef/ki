@@ -1,73 +1,104 @@
 package crud
 
 import (
+	"bytes"
 	"github.com/google/uuid"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 )
 
-type requestLogger struct {
-	breadCrumb string
-	req        *http.Request
-	io.ReadCloser
-}
-
-func (r *requestLogger) Read(p []byte) (int, error) {
-	n, err := r.ReadCloser.Read(p)
-	log.Printf("Inbound message:\nBreadcrumb: %s\nHost: %s\nRemoteAddr: %s\nMethod: %s\nProto: %s\nPath: %s\nPayload: %s",
-		r.breadCrumb, r.req.Host, r.req.RemoteAddr, r.req.Method, r.req.Proto, r.req.URL.Path, string(p))
-
-	return n, err
-}
-
-func (r *requestLogger) Close() error {
-	return r.ReadCloser.Close()
-}
-
-type responseLogger struct {
+type requestLoggerWrapper struct {
 	breadcrumb string
-	http.ResponseWriter
-	status int
+	req        *http.Request
+	reader     io.ReadCloser
+	buffer     io.ReadWriter
 }
 
-func (r *responseLogger) WriteHeader(status int) {
+func NewRequestLogger(req *http.Request, breadcrumb string) *requestLoggerWrapper {
+	buffer := new(bytes.Buffer)
+	return &requestLoggerWrapper{
+		breadcrumb: breadcrumb,
+		req:        req,
+		reader:     ioutil.NopCloser(io.TeeReader(req.Body, buffer)),
+		buffer:     buffer,
+	}
+}
+
+func (r *requestLoggerWrapper) log() {
+	reqBytes, err := ioutil.ReadAll(r.buffer)
+	if err != nil {
+		log.Printf("Error logging request: %v\n", err)
+	}
+
+	log.Printf("Inbound message:\nBreadcrumb: %s\nHost: %s\nRemoteAddr: %s\nMethod: %s\nProto: %s\nPath: %s\nPayload: %s",
+		r.breadcrumb, r.req.Host, r.req.RemoteAddr, r.req.Method, r.req.Proto, r.req.URL.Path, string(reqBytes))
+}
+
+func (r *requestLoggerWrapper) Read(p []byte) (int, error) {
+	return r.reader.Read(p)
+}
+
+func (r *requestLoggerWrapper) Close() error {
+	return r.reader.Close()
+}
+
+type responseLoggerWrapper struct {
+	breadcrumb string
+	status     int
+	resWriter  http.ResponseWriter
+	writer     io.Writer
+	buffer     io.ReadWriter
+}
+
+func NewResponseLoggerWrapper(responseWriter http.ResponseWriter, breadcrumb string) *responseLoggerWrapper {
+	buffer := new(bytes.Buffer)
+	return &responseLoggerWrapper{
+		breadcrumb: breadcrumb,
+		writer:     io.MultiWriter(responseWriter, buffer),
+		resWriter:  responseWriter,
+		buffer:     buffer,
+	}
+}
+
+func (r *responseLoggerWrapper) log() {
+	resBytes, err := ioutil.ReadAll(r.buffer)
+	if err != nil {
+		log.Printf("Error logging request: %v\n", err)
+	}
+
+	log.Printf("Outbound Response:\nBreadcrumb: %s\nResponse-Code: %d\nHeaders: %v\nPayload: %s",
+		r.breadcrumb, r.status, r.resWriter.Header(), string(resBytes))
+}
+
+func (r *responseLoggerWrapper) Header() http.Header {
+	return r.resWriter.Header()
+}
+
+func (r *responseLoggerWrapper) WriteHeader(status int) {
 	r.status = status
-	r.ResponseWriter.WriteHeader(status)
+	r.resWriter.WriteHeader(status)
 }
 
-func (r *responseLogger) Write(p []byte) (int, error) {
+func (r *responseLoggerWrapper) Write(p []byte) (int, error) {
 	if r.status == 0 {
 		r.status = 200
 	}
 
-	log.Printf("Outbound Response:\nBreadcrumb: %s\nResponse-Code: %d\nHeaders: %v\nPayload: %s",
-		r.breadcrumb, r.status, r.ResponseWriter.Header(), string(p))
-
-	return r.ResponseWriter.Write(p)
+	return r.writer.Write(p)
 }
 
 func inOutLog(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 		breadCrumb := uuid.New().String()
+		requestLogger := NewRequestLogger(req, breadCrumb)
+		req.Body = requestLogger
+		resWriter := NewResponseLoggerWrapper(res, breadCrumb)
 
-		// Workaround for logging GET request
-		if req.Method == http.MethodGet {
-			log.Printf("Inbound Request:\nBreadcrumb: %s\nHost: %s\nRemoteAddr: %s\nMethod: %s\nProto: %s\nPath: %s\n",
-				breadCrumb, req.Host, req.RemoteAddr, req.Method, req.Proto, req.URL.Path)
-		} else {
-			req.Body = &requestLogger{
-				breadCrumb: breadCrumb,
-				req:        req,
-				ReadCloser: req.Body,
-			}
-		}
+		h.ServeHTTP(resWriter, req)
 
-		responseWriter := responseLogger{
-			breadcrumb:     breadCrumb,
-			ResponseWriter: res,
-		}
-
-		h.ServeHTTP(&responseWriter, req)
+		requestLogger.log()
+		resWriter.log()
 	})
 }
