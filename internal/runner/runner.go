@@ -22,7 +22,6 @@ type Runner struct {
 // NewRunner returns a new Runner object
 func NewRunner() *Runner {
 	newRunner := &Runner{}
-	newRunner.signal = make(chan bool)
 
 	return newRunner
 }
@@ -35,8 +34,11 @@ func (r *Runner) Add(runnable Runnable) {
 // Run starts all the Runnables and shuts them down on signal. Returns when all Runnables are shut down.
 func (r *Runner) Run() {
 	if len(r.runnables) == 0 {
-		log.Println("No runnables registered. Stopping application...")
+		log.Println("Run called, but no runnables registered.")
+		return
 	}
+
+	r.signal = make(chan bool, len(r.runnables))
 
 	r.waitGroup.Add(len(r.runnables))
 	for _, element := range r.runnables {
@@ -46,6 +48,7 @@ func (r *Runner) Run() {
 		}(element)
 	}
 
+	// Only need one signal to start shutdown process
 	select {
 	case <-r.signal:
 		log.Println("Received signal. Preparing for shutdown.")
@@ -56,4 +59,5 @@ func (r *Runner) Run() {
 	}
 
 	r.waitGroup.Wait()
+	close(r.signal)
 }

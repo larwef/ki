@@ -29,7 +29,7 @@ func (s *Server) Serve(signal chan bool) {
 	log.Printf("Starting grpc server on %s\n", s.Listener.Addr().String())
 	if err := s.Server.Serve(s.Listener); err != nil {
 		log.Printf("grpc error: %v\n", err)
-		close(signal)
+		signal <- true
 	}
 }
 

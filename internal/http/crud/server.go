@@ -19,7 +19,7 @@ func (s *Server) Serve(signal chan bool) {
 	log.Printf("Starting crud server on %s\n", s.Server.Addr)
 	if err := s.Server.ListenAndServe(); err != nil {
 		log.Printf("crud server error: %v\n", err)
-		close(signal)
+		signal <- true
 	}
 }
 
