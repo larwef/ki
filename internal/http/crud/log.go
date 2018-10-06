@@ -9,16 +9,19 @@ import (
 	"net/http"
 )
 
-type requestLoggerWrapper struct {
+// RequestLoggerWrapper wraps a http.Request. All writes to the http.Request gets written to a buffer which can be used to Log the
+// content written to it by calling the Log function.
+type RequestLoggerWrapper struct {
 	breadcrumb string
 	req        *http.Request
 	reader     io.ReadCloser
 	buffer     io.ReadWriter
 }
 
-func NewRequestLogger(req *http.Request, breadcrumb string) *requestLoggerWrapper {
+// NewRequestLogger returns a new RequestLogger
+func NewRequestLogger(req *http.Request, breadcrumb string) *RequestLoggerWrapper {
 	buffer := new(bytes.Buffer)
-	return &requestLoggerWrapper{
+	return &RequestLoggerWrapper{
 		breadcrumb: breadcrumb,
 		req:        req,
 		reader:     ioutil.NopCloser(io.TeeReader(req.Body, buffer)),
@@ -26,7 +29,8 @@ func NewRequestLogger(req *http.Request, breadcrumb string) *requestLoggerWrappe
 	}
 }
 
-func (r *requestLoggerWrapper) log() {
+// Log prints the content of the buffer
+func (r *RequestLoggerWrapper) Log() {
 	reqBytes, err := ioutil.ReadAll(r.buffer)
 	if err != nil {
 		log.Printf("Error logging request: %v\n", err)
@@ -36,15 +40,17 @@ func (r *requestLoggerWrapper) log() {
 		r.breadcrumb, r.req.Host, r.req.RemoteAddr, r.req.Method, r.req.Proto, r.req.URL.Path, string(reqBytes))
 }
 
-func (r *requestLoggerWrapper) Read(p []byte) (int, error) {
+func (r *RequestLoggerWrapper) Read(p []byte) (int, error) {
 	return r.reader.Read(p)
 }
 
-func (r *requestLoggerWrapper) Close() error {
+func (r *RequestLoggerWrapper) Close() error {
 	return r.reader.Close()
 }
 
-type responseLoggerWrapper struct {
+// ResponseLoggerWrapper wraps a http.ResponseWriter. All writes to the http.ResponseWriter gets written to a buffer which can be
+// used to Log the content written to it by calling the Log function.
+type ResponseLoggerWrapper struct {
 	breadcrumb string
 	status     int
 	resWriter  http.ResponseWriter
@@ -52,9 +58,10 @@ type responseLoggerWrapper struct {
 	buffer     io.ReadWriter
 }
 
-func NewResponseLoggerWrapper(responseWriter http.ResponseWriter, breadcrumb string) *responseLoggerWrapper {
+// NewResponseLoggerWrapper returns a new ResponseLoggerWrapper
+func NewResponseLoggerWrapper(responseWriter http.ResponseWriter, breadcrumb string) *ResponseLoggerWrapper {
 	buffer := new(bytes.Buffer)
-	return &responseLoggerWrapper{
+	return &ResponseLoggerWrapper{
 		breadcrumb: breadcrumb,
 		writer:     io.MultiWriter(responseWriter, buffer),
 		resWriter:  responseWriter,
@@ -62,7 +69,8 @@ func NewResponseLoggerWrapper(responseWriter http.ResponseWriter, breadcrumb str
 	}
 }
 
-func (r *responseLoggerWrapper) log() {
+// Log prints the content of the buffer
+func (r *ResponseLoggerWrapper) Log() {
 	resBytes, err := ioutil.ReadAll(r.buffer)
 	if err != nil {
 		log.Printf("Error logging request: %v\n", err)
@@ -72,16 +80,16 @@ func (r *responseLoggerWrapper) log() {
 		r.breadcrumb, r.status, r.resWriter.Header(), string(resBytes))
 }
 
-func (r *responseLoggerWrapper) Header() http.Header {
+func (r *ResponseLoggerWrapper) Header() http.Header {
 	return r.resWriter.Header()
 }
 
-func (r *responseLoggerWrapper) WriteHeader(status int) {
+func (r *ResponseLoggerWrapper) WriteHeader(status int) {
 	r.status = status
 	r.resWriter.WriteHeader(status)
 }
 
-func (r *responseLoggerWrapper) Write(p []byte) (int, error) {
+func (r *ResponseLoggerWrapper) Write(p []byte) (int, error) {
 	if r.status == 0 {
 		r.status = 200
 	}
@@ -89,6 +97,8 @@ func (r *responseLoggerWrapper) Write(p []byte) (int, error) {
 	return r.writer.Write(p)
 }
 
+// TODO: Still not happy with this. What if something is logged inside another chain link? The innOut Log wil probably come at the end
+// TODO: Coudl just go for a simple
 func inOutLog(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 		breadCrumb := uuid.New().String()
@@ -98,7 +108,7 @@ func inOutLog(h http.Handler) http.Handler {
 
 		h.ServeHTTP(resWriter, req)
 
-		requestLogger.log()
-		resWriter.log()
+		requestLogger.Log()
+		resWriter.Log()
 	})
 }

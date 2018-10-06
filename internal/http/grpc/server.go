@@ -19,8 +19,6 @@ type Server struct {
 }
 
 // Serve starts listening on the grpc server. Sends a signal on error.
-// TODO: Improvement: When GracefulStop is called Serve will return, hopefully without error. Should it return with an error
-// TODO: the program will panic (since this will call close on a closed channel). So this could be executed cleaner.
 func (s *Server) Serve(signal chan bool) {
 	RegisterGroupServiceServer(s.Server, s.Handler)
 	RegisterConfigServiceServer(s.Server, s.Handler)

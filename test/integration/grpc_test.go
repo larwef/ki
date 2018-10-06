@@ -22,6 +22,15 @@ var grpcTestDataFolder = "../testdata/"
 
 func getConnection(t *testing.T) *goGrpc.ClientConn {
 	// Set up a connection to the server.
+
+	// Use this if testing live with TLS
+	//rootCAs, _ := x509.SystemCertPool()
+	//tlsConfig := &tls.Config{
+	//	RootCAs: rootCAs,
+	//}
+	//creds := credentials.NewTLS(tlsConfig)
+	//conn, err := goGrpc.Dial(grpcAddress, goGrpc.WithTransportCredentials(creds))
+
 	conn, err := goGrpc.Dial(grpcAddress, goGrpc.WithInsecure())
 	if err != nil {
 		t.Fatalf("did not connect: %v", err)
