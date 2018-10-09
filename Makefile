@@ -1,6 +1,6 @@
 TARGET=target
 
-all: test build
+all: test build-linux build-mac build-windows
 
 # PHONY used to mitigate conflict with dir name test
 .PHONY: test
@@ -18,9 +18,17 @@ coverage:
 	go tool cover -func=coverage.out
 	go tool cover -html=coverage.out
 
-build:
-	GOOS=linux go build -o $(TARGET)/app cmd/main.go
-	zip -j $(TARGET)/deployment.zip $(TARGET)/app
+build-linux:
+	GOOS=linux go build -o $(TARGET)/linux/app cmd/main.go
+	zip -j $(TARGET)/deployment-linux.zip $(TARGET)/linux/app
+
+build-mac:
+	GOOS=darwin go build -o $(TARGET)/mac/app cmd/main.go
+	zip -j $(TARGET)/deployment-mac.zip $(TARGET)/mac/app
+
+build-windows:
+	GOOS=windows go build -o $(TARGET)/windows/app cmd/main.go
+	zip -j $(TARGET)/deployment-windows.zip $(TARGET)/windows/app
 
 proto:
 	protoc -I internal/http/grpc/ internal/http/grpc/*.proto --go_out=plugins=grpc:internal/http/grpc
