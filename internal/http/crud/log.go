@@ -9,19 +9,19 @@ import (
 	"net/http"
 )
 
-// RequestLoggerWrapper wraps a http.Request. All writes to the http.Request gets written to a buffer which can be used to Log the
-// content written to it by calling the Log function.
-type RequestLoggerWrapper struct {
+// requestLoggerWrapper wraps a http.Request. All writes to the http.Request gets written to a buffer which can be used to log the
+// content written to it by calling the log function.
+type requestLoggerWrapper struct {
 	breadcrumb string
 	req        *http.Request
 	reader     io.ReadCloser
 	buffer     io.ReadWriter
 }
 
-// NewRequestLogger returns a new RequestLogger
-func NewRequestLogger(req *http.Request, breadcrumb string) *RequestLoggerWrapper {
+// newRequestLogger returns a new RequestLogger
+func newRequestLogger(req *http.Request, breadcrumb string) *requestLoggerWrapper {
 	buffer := new(bytes.Buffer)
-	return &RequestLoggerWrapper{
+	return &requestLoggerWrapper{
 		breadcrumb: breadcrumb,
 		req:        req,
 		reader:     ioutil.NopCloser(io.TeeReader(req.Body, buffer)),
@@ -29,8 +29,8 @@ func NewRequestLogger(req *http.Request, breadcrumb string) *RequestLoggerWrappe
 	}
 }
 
-// Log prints the content of the buffer
-func (r *RequestLoggerWrapper) Log() {
+// log prints the content of the buffer
+func (r *requestLoggerWrapper) log() {
 	reqBytes, err := ioutil.ReadAll(r.buffer)
 	if err != nil {
 		log.Printf("Error logging request: %v\n", err)
@@ -40,17 +40,17 @@ func (r *RequestLoggerWrapper) Log() {
 		r.breadcrumb, r.req.Host, r.req.RemoteAddr, r.req.Method, r.req.Proto, r.req.URL.Path, string(reqBytes))
 }
 
-func (r *RequestLoggerWrapper) Read(p []byte) (int, error) {
+func (r *requestLoggerWrapper) Read(p []byte) (int, error) {
 	return r.reader.Read(p)
 }
 
-func (r *RequestLoggerWrapper) Close() error {
+func (r *requestLoggerWrapper) Close() error {
 	return r.reader.Close()
 }
 
-// ResponseLoggerWrapper wraps a http.ResponseWriter. All writes to the http.ResponseWriter gets written to a buffer which can be
-// used to Log the content written to it by calling the Log function.
-type ResponseLoggerWrapper struct {
+// responseLoggerWrapper wraps a http.ResponseWriter. All writes to the http.ResponseWriter gets written to a buffer which can be
+// used to log the content written to it by calling the log function.
+type responseLoggerWrapper struct {
 	breadcrumb string
 	status     int
 	resWriter  http.ResponseWriter
@@ -58,10 +58,10 @@ type ResponseLoggerWrapper struct {
 	buffer     io.ReadWriter
 }
 
-// NewResponseLoggerWrapper returns a new ResponseLoggerWrapper
-func NewResponseLoggerWrapper(responseWriter http.ResponseWriter, breadcrumb string) *ResponseLoggerWrapper {
+// newResponseLoggerWrapper returns a new responseLoggerWrapper
+func newResponseLoggerWrapper(responseWriter http.ResponseWriter, breadcrumb string) *responseLoggerWrapper {
 	buffer := new(bytes.Buffer)
-	return &ResponseLoggerWrapper{
+	return &responseLoggerWrapper{
 		breadcrumb: breadcrumb,
 		writer:     io.MultiWriter(responseWriter, buffer),
 		resWriter:  responseWriter,
@@ -69,8 +69,8 @@ func NewResponseLoggerWrapper(responseWriter http.ResponseWriter, breadcrumb str
 	}
 }
 
-// Log prints the content of the buffer
-func (r *ResponseLoggerWrapper) Log() {
+// log prints the content of the buffer
+func (r *responseLoggerWrapper) log() {
 	resBytes, err := ioutil.ReadAll(r.buffer)
 	if err != nil {
 		log.Printf("Error logging request: %v\n", err)
@@ -80,16 +80,16 @@ func (r *ResponseLoggerWrapper) Log() {
 		r.breadcrumb, r.status, r.resWriter.Header(), string(resBytes))
 }
 
-func (r *ResponseLoggerWrapper) Header() http.Header {
+func (r *responseLoggerWrapper) Header() http.Header {
 	return r.resWriter.Header()
 }
 
-func (r *ResponseLoggerWrapper) WriteHeader(status int) {
+func (r *responseLoggerWrapper) WriteHeader(status int) {
 	r.status = status
 	r.resWriter.WriteHeader(status)
 }
 
-func (r *ResponseLoggerWrapper) Write(p []byte) (int, error) {
+func (r *responseLoggerWrapper) Write(p []byte) (int, error) {
 	if r.status == 0 {
 		r.status = 200
 	}
@@ -97,18 +97,18 @@ func (r *ResponseLoggerWrapper) Write(p []byte) (int, error) {
 	return r.writer.Write(p)
 }
 
-// TODO: Still not happy with this. What if something is logged inside another chain link? The innOut Log wil probably come at the end
+// TODO: Still not happy with this. What if something is logged inside another chain link? The innOut log wil probably come at the end
 // TODO: Coudl just go for a simple
 func inOutLog(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 		breadCrumb := uuid.New().String()
-		requestLogger := NewRequestLogger(req, breadCrumb)
+		requestLogger := newRequestLogger(req, breadCrumb)
 		req.Body = requestLogger
-		resWriter := NewResponseLoggerWrapper(res, breadCrumb)
+		resWriter := newResponseLoggerWrapper(res, breadCrumb)
 
 		h.ServeHTTP(resWriter, req)
 
-		requestLogger.Log()
-		resWriter.Log()
+		requestLogger.log()
+		resWriter.log()
 	})
 }

@@ -17,6 +17,8 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"os"
+	"strconv"
 	"time"
 )
 
@@ -24,9 +26,7 @@ import (
 type APIType int
 
 // StorageType defines available storage types
-type StorageType int
-
-const stagingURL = "https://acme-staging.api.letsencrypt.org/directory"
+type StorageType string
 
 const (
 	// CRUD uses json over http
@@ -35,31 +35,47 @@ const (
 	GRPC
 
 	// Memory will store data in memory
-	Memory StorageType = iota
+	Memory StorageType = "memory"
 	// JSON will store data in JSON files saved on disk
-	JSON
+	JSON StorageType = "json"
 )
 
+// TODO: Clean main function
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	log.Println("Starting application...")
 
-	// TODO: Do better configuration
+	// Flags
 	// Use this for local testing
 	disableTLS := flag.Bool("disable-tls", false, "Set TLS config on server objects")
-	// Use acme-staging.api. Use this when testing setup to not risking hitting rate limit in prod.
-	useStaging := flag.Bool("use-staging", false, "Use Let's encrypt staging api")
 	flag.Parse()
-	log.Printf("TLS Enabled: %t", !*disableTLS)
 
-	apiType := CRUD | GRPC
-	storageType := Memory
-	path := "testDir"
-	host := "tlstest.wefald.no"
+	// Environment variables
+	host := os.Getenv("tls.acme.host")
+	certCache := os.Getenv("tls.acme.certCache")
+	acmeDirectoryURL := os.Getenv("tls.acme.directoryUrl")
+	acmeClientEmail := os.Getenv("tls.acme.client.email")
+
+	persistenceType := os.Getenv("persistence.type")
+	persistenceLocation := os.Getenv("persistence.location")
+
+	apiTypeCrudEnabled := os.Getenv("apiType.crud.enabled")
+	apiTypeCrudAddr := os.Getenv("apiType.crud.address")
+	apiTypeGrpcEnabled := os.Getenv("apiType.grpc.enabled")
+	apiTypeGrpcAddr := os.Getenv("apiType.grpc.address")
+
+	// Setting bits since we want to be able to run multiple api types
+	var apiType APIType
+	if b, _ := strconv.ParseBool(apiTypeCrudEnabled); b {
+		apiType = apiType | CRUD
+	}
+	if b, _ := strconv.ParseBool(apiTypeGrpcEnabled); b {
+		apiType = apiType | GRPC
+	}
 
 	var add adding.Service
 	var lst listing.Service
-	switch storageType {
+	switch StorageType(persistenceType) {
 	case Memory:
 		repo := memory.NewRepository()
 		add = adding.NewService(repo)
@@ -67,7 +83,7 @@ func main() {
 		log.Println("Using in memory storage")
 		break
 	case JSON:
-		repo := local.NewRepository(path)
+		repo := local.NewRepository(persistenceLocation)
 		add = adding.NewService(repo)
 		lst = listing.NewService(repo)
 		log.Println("Using JSON storage")
@@ -76,20 +92,19 @@ func main() {
 		log.Fatal("Unsupported storage type")
 	}
 
-	// TLS stuff
 	var tlsConfig *tls.Config
 	if !*disableTLS {
-		// Cached certificates are stored here
-		dataDir := "certCache"
+
+		acmeClient := &acme.Client{
+			DirectoryURL: acmeDirectoryURL,
+		}
 
 		m := &autocert.Manager{
 			Prompt:     autocert.AcceptTOS,
+			Cache:      autocert.DirCache(certCache),
 			HostPolicy: autocert.HostWhitelist(host),
-			Cache:      autocert.DirCache(dataDir),
-		}
-
-		if *useStaging {
-			m.Client = &acme.Client{DirectoryURL: stagingURL}
+			Client:     acmeClient,
+			Email:      acmeClientEmail,
 		}
 
 		tlsConfig = &tls.Config{GetCertificate: m.GetCertificate}
@@ -100,8 +115,9 @@ func main() {
 				log.Fatalf("Error listening to port http: %v", err)
 			}
 		}()
+	} else {
+		log.Println("TLS diabled")
 	}
-	// End TLS stuff
 
 	rnr := runner.NewRunner()
 
@@ -109,10 +125,11 @@ func main() {
 	if apiType&CRUD != 0 {
 		crudServer := &crud.Server{
 			Server: &http.Server{
-				Addr:         ":8080",
+				Addr:         apiTypeCrudAddr,
 				Handler:      crud.NewHandler(add, lst),
-				ReadTimeout:  5 * time.Second,
-				WriteTimeout: 10 * time.Second,
+				ReadTimeout:  15 * time.Second,
+				WriteTimeout: 30 * time.Second,
+				IdleTimeout:  60 * time.Second,
 				TLSConfig:    tlsConfig,
 			},
 		}
@@ -121,7 +138,7 @@ func main() {
 
 	// gRPC
 	if apiType&GRPC != 0 {
-		listener, err := net.Listen("tcp", ":8081")
+		listener, err := net.Listen("tcp", apiTypeGrpcAddr)
 		if err != nil {
 			log.Fatalf("failed to listen: %v", err)
 		}
