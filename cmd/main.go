@@ -25,8 +25,8 @@ import (
 // APIType defines available api types
 type APIType int
 
-// StorageType defines available storage types
-type StorageType string
+// PersistenceType defines available storage types
+type PersistenceType string
 
 const (
 	// CRUD uses json over http
@@ -35,47 +35,62 @@ const (
 	GRPC
 
 	// Memory will store data in memory
-	Memory StorageType = "memory"
+	Memory PersistenceType = "memory"
 	// JSON will store data in JSON files saved on disk
-	JSON StorageType = "json"
+	JSON PersistenceType = "json"
 )
 
-// TODO: Clean main function
+var appConfig = struct {
+	disableTLS *bool
+
+	host             string
+	certCache        string
+	acmeDirectoryURL string
+	acmeClientEmail  string
+
+	persistenceType     PersistenceType
+	persistenceLocation string
+
+	apiTypeCrudEnabled bool
+	apiTypeCrudAddr    string
+	apiTypeGrpcEnabled bool
+	apiTypeGrpcAddr    string
+}{
+	// Use this for local testing
+	disableTLS: flag.Bool("disable-tls", false, "Set TLS config on server objects"),
+
+	host:             os.Getenv("tls.acme.host"),
+	certCache:        os.Getenv("tls.acme.certCache"),
+	acmeDirectoryURL: os.Getenv("tls.acme.directoryUrl"),
+	acmeClientEmail:  os.Getenv("tls.acme.client.email"),
+
+	persistenceType:     PersistenceType(os.Getenv("persistence.type")),
+	persistenceLocation: os.Getenv("persistence.location"),
+
+	apiTypeCrudEnabled: parseEnvBool(os.Getenv("apiType.crud.enabled")),
+	apiTypeCrudAddr:    os.Getenv("apiType.crud.address"),
+	apiTypeGrpcEnabled: parseEnvBool(os.Getenv("apiType.grpc.enabled")),
+	apiTypeGrpcAddr:    os.Getenv("apiType.grpc.address"),
+}
+
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	log.Println("Starting application...")
 
-	// Flags
-	// Use this for local testing
-	disableTLS := flag.Bool("disable-tls", false, "Set TLS config on server objects")
 	flag.Parse()
-
-	// Environment variables
-	host := os.Getenv("tls.acme.host")
-	certCache := os.Getenv("tls.acme.certCache")
-	acmeDirectoryURL := os.Getenv("tls.acme.directoryUrl")
-	acmeClientEmail := os.Getenv("tls.acme.client.email")
-
-	persistenceType := os.Getenv("persistence.type")
-	persistenceLocation := os.Getenv("persistence.location")
-
-	apiTypeCrudEnabled := os.Getenv("apiType.crud.enabled")
-	apiTypeCrudAddr := os.Getenv("apiType.crud.address")
-	apiTypeGrpcEnabled := os.Getenv("apiType.grpc.enabled")
-	apiTypeGrpcAddr := os.Getenv("apiType.grpc.address")
 
 	// Setting bits since we want to be able to run multiple api types
 	var apiType APIType
-	if b, _ := strconv.ParseBool(apiTypeCrudEnabled); b {
+	if appConfig.apiTypeCrudEnabled {
 		apiType = apiType | CRUD
 	}
-	if b, _ := strconv.ParseBool(apiTypeGrpcEnabled); b {
+	if appConfig.apiTypeGrpcEnabled {
 		apiType = apiType | GRPC
 	}
 
 	var add adding.Service
 	var lst listing.Service
-	switch StorageType(persistenceType) {
+	switch appConfig.persistenceType {
 	case Memory:
 		repo := memory.NewRepository()
 		add = adding.NewService(repo)
@@ -83,7 +98,7 @@ func main() {
 		log.Println("Using in memory storage")
 		break
 	case JSON:
-		repo := local.NewRepository(persistenceLocation)
+		repo := local.NewRepository(appConfig.persistenceLocation)
 		add = adding.NewService(repo)
 		lst = listing.NewService(repo)
 		log.Println("Using JSON storage")
@@ -93,18 +108,18 @@ func main() {
 	}
 
 	var tlsConfig *tls.Config
-	if !*disableTLS {
+	if !*appConfig.disableTLS {
 
 		acmeClient := &acme.Client{
-			DirectoryURL: acmeDirectoryURL,
+			DirectoryURL: appConfig.acmeDirectoryURL,
 		}
 
 		m := &autocert.Manager{
 			Prompt:     autocert.AcceptTOS,
-			Cache:      autocert.DirCache(certCache),
-			HostPolicy: autocert.HostWhitelist(host),
+			Cache:      autocert.DirCache(appConfig.certCache),
+			HostPolicy: autocert.HostWhitelist(appConfig.host),
 			Client:     acmeClient,
-			Email:      acmeClientEmail,
+			Email:      appConfig.acmeClientEmail,
 		}
 
 		tlsConfig = &tls.Config{GetCertificate: m.GetCertificate}
@@ -112,6 +127,8 @@ func main() {
 		go func() {
 			// Listens for challenges from Let's encrypt
 			if err := http.ListenAndServe(":http", m.HTTPHandler(nil)); err != nil {
+				// TODO: If this listener fails the app will no longer be able to get new certificates from ACME provider. But
+				// TODO as long as theres a valid cached certificate this shouldnt be a problem
 				log.Fatalf("Error listening to port http: %v", err)
 			}
 		}()
@@ -125,7 +142,7 @@ func main() {
 	if apiType&CRUD != 0 {
 		crudServer := &crud.Server{
 			Server: &http.Server{
-				Addr:         apiTypeCrudAddr,
+				Addr:         appConfig.apiTypeCrudAddr,
 				Handler:      crud.NewHandler(add, lst),
 				ReadTimeout:  15 * time.Second,
 				WriteTimeout: 30 * time.Second,
@@ -138,7 +155,7 @@ func main() {
 
 	// gRPC
 	if apiType&GRPC != 0 {
-		listener, err := net.Listen("tcp", apiTypeGrpcAddr)
+		listener, err := net.Listen("tcp", appConfig.apiTypeGrpcAddr)
 		if err != nil {
 			log.Fatalf("failed to listen: %v", err)
 		}
@@ -163,4 +180,14 @@ func main() {
 	rnr.Run()
 
 	log.Println("Exiting application.")
+}
+
+func parseEnvBool(variable string) bool {
+	b, err := strconv.ParseBool(variable)
+
+	if err != nil {
+		log.Printf("Error parsing environment variable: %q. Returning false", variable)
+	}
+
+	return b
 }
