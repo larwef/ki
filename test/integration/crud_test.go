@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	crudAddress        = "http://localhost:8080"
+	crudAddress        = "https://tlstest.wefald.no:8080"
 	crudTestDataFolder = "../testdata/"
 )
 
@@ -48,7 +48,7 @@ func Test_CRUDAddAndRetrieveGroup(t *testing.T) {
 	test.AssertEqual(t, len(grpPutRes.Configs), 0)
 
 	var grpGetRes listing.Group
-	_, err = testClient.get("/config/someCrudGroup", &grpGetRes)
+	_, err = testClient.get("config/someCrudGroup", &grpGetRes)
 	test.AssertNotError(t, err)
 	test.AssertEqual(t, grpGetRes.ID, "someCrudGroup")
 	test.AssertEqual(t, len(grpGetRes.Configs), 0)
@@ -101,7 +101,7 @@ func Test_CRUDAddAndRetrieveConfig(t *testing.T) {
 	test.AssertEqual(t, propMap["property5"], 12.1)
 
 	var confGetRes listing.Config
-	_, err = testClient.get("/config/someCrudGroup/someCrudId", &confGetRes)
+	_, err = testClient.get("config/someCrudOtherGroup/someCrudId", &confGetRes)
 	test.AssertNotError(t, err)
 	test.AssertEqual(t, confGetRes.ID, "someCrudId")
 	test.AssertEqual(t, confGetRes.Name, "someCrudName")
@@ -149,7 +149,7 @@ func Test_CRUDRetrieveConfig_ConfigNotFound(t *testing.T) {
 	_, err := testClient.put("config/someCrudOtherGroup", &grpPutReq, &grpPutRes)
 
 	var confGetRes listing.Config
-	res, _ := testClient.get("/config/someCrudGroup/someCrudNonExistingId", &confGetRes)
+	res, _ := testClient.get("config/someCrudGroup/someCrudNonExistingId", &confGetRes)
 	payload, err := ioutil.ReadAll(res.Body)
 	test.AssertNotError(t, err)
 	test.AssertEqual(t, res.StatusCode, http.StatusNotFound)

@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"flag"
 	"github.com/larwef/ki/internal/adding"
+	"github.com/larwef/ki/internal/config"
 	"github.com/larwef/ki/internal/http/crud"
 	"github.com/larwef/ki/internal/http/grpc"
 	"github.com/larwef/ki/internal/listing"
@@ -17,8 +18,6 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"os"
-	"strconv"
 	"time"
 )
 
@@ -43,57 +42,33 @@ const (
 // Version specifies application version. Set at build time.
 var Version = "No version provided"
 
-var appConfig = struct {
-	disableTLS *bool
-
-	host             string
-	certCache        string
-	acmeDirectoryURL string
-	acmeClientEmail  string
-
-	persistenceType     PersistenceType
-	persistenceLocation string
-
-	apiTypeCrudEnabled bool
-	apiTypeCrudAddr    string
-	apiTypeGrpcEnabled bool
-	apiTypeGrpcAddr    string
-}{
-	// Use this for local testing
-	disableTLS: flag.Bool("disable-tls", false, "Set TLS config on server objects"),
-
-	host:             os.Getenv("tls.acme.host"),
-	certCache:        os.Getenv("tls.acme.certCache"),
-	acmeDirectoryURL: os.Getenv("tls.acme.directoryUrl"),
-	acmeClientEmail:  os.Getenv("tls.acme.client.email"),
-
-	persistenceType:     PersistenceType(os.Getenv("persistence.type")),
-	persistenceLocation: os.Getenv("persistence.location"),
-
-	apiTypeCrudEnabled: parseEnvBool(os.Getenv("apiType.crud.enabled")),
-	apiTypeCrudAddr:    os.Getenv("apiType.crud.address"),
-	apiTypeGrpcEnabled: parseEnvBool(os.Getenv("apiType.grpc.enabled")),
-	apiTypeGrpcAddr:    os.Getenv("apiType.grpc.address"),
-}
-
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	log.Printf("Starting Ki. Version: %s\n", Version)
 
+	// Config
+	disableTLS := flag.Bool("disable-tls", false, "Set TLS config on server objects")
+	propertyFile := flag.String("property-file", "", "Set if properties should be gotten from file")
 	flag.Parse()
+
+	// ReadEnv will overwrite the properties from file
+	if *propertyFile != "" {
+		config.FromPorpertyFile(*propertyFile)
+	}
+	config.FromEnv()
 
 	// Setting bits since we want to be able to run multiple api types
 	var apiType APIType
-	if appConfig.apiTypeCrudEnabled {
+	if config.GetBool("apiType.crud.enabled", false) {
 		apiType = apiType | CRUD
 	}
-	if appConfig.apiTypeGrpcEnabled {
+	if config.GetBool("apiType.grpc.enabled", false) {
 		apiType = apiType | GRPC
 	}
 
 	var add adding.Service
 	var lst listing.Service
-	switch appConfig.persistenceType {
+	switch PersistenceType(config.GetString("persistence.type")) {
 	case Memory:
 		repo := memory.NewRepository()
 		add = adding.NewService(repo)
@@ -101,7 +76,7 @@ func main() {
 		log.Println("Using in memory storage")
 		break
 	case JSON:
-		repo := local.NewRepository(appConfig.persistenceLocation)
+		repo := local.NewRepository(config.GetString("persistence.location"))
 		add = adding.NewService(repo)
 		lst = listing.NewService(repo)
 		log.Println("Using JSON storage")
@@ -111,18 +86,18 @@ func main() {
 	}
 
 	var tlsConfig *tls.Config
-	if !*appConfig.disableTLS {
+	if !*disableTLS {
 
 		acmeClient := &acme.Client{
-			DirectoryURL: appConfig.acmeDirectoryURL,
+			DirectoryURL: config.GetString("tls.acme.directoryUrl"),
 		}
 
 		m := &autocert.Manager{
 			Prompt:     autocert.AcceptTOS,
-			Cache:      autocert.DirCache(appConfig.certCache),
-			HostPolicy: autocert.HostWhitelist(appConfig.host),
+			Cache:      autocert.DirCache(config.GetString("tls.acme.certCache")),
+			HostPolicy: autocert.HostWhitelist(config.GetString("tls.acme.host")),
 			Client:     acmeClient,
-			Email:      appConfig.acmeClientEmail,
+			Email:      config.GetString("tls.acme.client.email"),
 		}
 
 		tlsConfig = &tls.Config{GetCertificate: m.GetCertificate}
@@ -136,7 +111,7 @@ func main() {
 			}
 		}()
 	} else {
-		log.Println("TLS diabled")
+		log.Println("TLS disabled")
 	}
 
 	rnr := runner.NewRunner()
@@ -145,7 +120,7 @@ func main() {
 	if apiType&CRUD != 0 {
 		crudServer := &crud.Server{
 			Server: &http.Server{
-				Addr:         appConfig.apiTypeCrudAddr,
+				Addr:         config.GetString("apiType.crud.address"),
 				Handler:      crud.NewHandler(add, lst),
 				ReadTimeout:  15 * time.Second,
 				WriteTimeout: 30 * time.Second,
@@ -158,7 +133,7 @@ func main() {
 
 	// gRPC
 	if apiType&GRPC != 0 {
-		listener, err := net.Listen("tcp", appConfig.apiTypeGrpcAddr)
+		listener, err := net.Listen("tcp", config.GetString("apiType.grpc.address"))
 		if err != nil {
 			log.Fatalf("failed to listen: %v", err)
 		}
@@ -183,14 +158,4 @@ func main() {
 	rnr.Run()
 
 	log.Println("Exiting application.")
-}
-
-func parseEnvBool(variable string) bool {
-	b, err := strconv.ParseBool(variable)
-
-	if err != nil {
-		log.Printf("Error parsing environment variable: %q. Returning false", variable)
-	}
-
-	return b
 }
