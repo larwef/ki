@@ -1,4 +1,5 @@
 TARGET=target
+VERSION=v0.0.1
 
 all: test build-linux build-mac build-windows
 
@@ -20,15 +21,15 @@ coverage:
 	go tool cover -html=coverage.out
 
 build-linux:
-	GOOS=linux go build -o $(TARGET)/linux/app cmd/main.go
+	GOOS=linux go build -ldflags "-X main.Version=$(VERSION)" -o $(TARGET)/linux/app cmd/main.go
 	zip -j $(TARGET)/deployment-linux.zip $(TARGET)/linux/app
 
 build-mac:
-	GOOS=darwin go build -o $(TARGET)/mac/app cmd/main.go
+	GOOS=darwin go build -ldflags "-X main.Version=$(VERSION)" -o $(TARGET)/mac/app cmd/main.go
 	zip -j $(TARGET)/deployment-mac.zip $(TARGET)/mac/app
 
 build-windows:
-	GOOS=windows go build -o $(TARGET)/windows/app cmd/main.go
+	GOOS=windows go build -ldflags "-X main.Version=$(VERSION)" -o $(TARGET)/windows/app cmd/main.go
 	zip -j $(TARGET)/deployment-windows.zip $(TARGET)/windows/app
 
 proto:

@@ -40,6 +40,9 @@ const (
 	JSON PersistenceType = "json"
 )
 
+// Version specifies application version. Set at build time.
+var Version = "No version provided"
+
 var appConfig = struct {
 	disableTLS *bool
 
@@ -75,7 +78,7 @@ var appConfig = struct {
 
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
-	log.Println("Starting application...")
+	log.Printf("Starting Ki. Version: %s\n", Version)
 
 	flag.Parse()
 
