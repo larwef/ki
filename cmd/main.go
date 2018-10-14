@@ -53,22 +53,26 @@ func main() {
 
 	// ReadEnv will overwrite the properties from file
 	if *propertyFile != "" {
-		config.FromPorpertyFile(*propertyFile)
+		config.ReadPorpertyFile(*propertyFile)
 	}
-	config.FromEnv()
+	config.ReadEnv()
 
 	// Setting bits since we want to be able to run multiple api types
 	var apiType APIType
-	if config.GetBool("apiType.crud.enabled", false) {
+	crudEnabled, _ := config.GetBool("apiType.crud.enabled", false)
+	if crudEnabled {
 		apiType = apiType | CRUD
 	}
-	if config.GetBool("apiType.grpc.enabled", false) {
+
+	grpcEnabled, _ := config.GetBool("apiType.grpc.enabled", false)
+	if grpcEnabled {
 		apiType = apiType | GRPC
 	}
 
 	var add adding.Service
 	var lst listing.Service
-	switch PersistenceType(config.GetString("persistence.type")) {
+	persistenceType := config.GetString("persistence.type")
+	switch PersistenceType(persistenceType) {
 	case Memory:
 		repo := memory.NewRepository()
 		add = adding.NewService(repo)
@@ -76,7 +80,8 @@ func main() {
 		log.Println("Using in memory storage")
 		break
 	case JSON:
-		repo := local.NewRepository(config.GetString("persistence.location"))
+		persistenceLocation := config.GetString("persistence.location")
+		repo := local.NewRepository(persistenceLocation)
 		add = adding.NewService(repo)
 		lst = listing.NewService(repo)
 		log.Println("Using JSON storage")
@@ -88,16 +93,20 @@ func main() {
 	var tlsConfig *tls.Config
 	if !*disableTLS {
 
+		acmeDirectoryURL := config.GetString("tls.acme.directoryUrl")
 		acmeClient := &acme.Client{
-			DirectoryURL: config.GetString("tls.acme.directoryUrl"),
+			DirectoryURL: acmeDirectoryURL,
 		}
 
+		certCache := config.GetString("tls.acme.certCache")
+		acmeHost := config.GetString("tls.acme.host")
+		acmeClientEmail := config.GetString("tls.acme.client.email")
 		m := &autocert.Manager{
 			Prompt:     autocert.AcceptTOS,
-			Cache:      autocert.DirCache(config.GetString("tls.acme.certCache")),
-			HostPolicy: autocert.HostWhitelist(config.GetString("tls.acme.host")),
+			Cache:      autocert.DirCache(certCache),
+			HostPolicy: autocert.HostWhitelist(acmeHost),
 			Client:     acmeClient,
-			Email:      config.GetString("tls.acme.client.email"),
+			Email:      acmeClientEmail,
 		}
 
 		tlsConfig = &tls.Config{GetCertificate: m.GetCertificate}
@@ -118,9 +127,10 @@ func main() {
 
 	// CRUD
 	if apiType&CRUD != 0 {
+		crudAddress := config.GetString("apiType.crud.address")
 		crudServer := &crud.Server{
 			Server: &http.Server{
-				Addr:         config.GetString("apiType.crud.address"),
+				Addr:         crudAddress,
 				Handler:      crud.NewHandler(add, lst),
 				ReadTimeout:  15 * time.Second,
 				WriteTimeout: 30 * time.Second,
@@ -133,7 +143,8 @@ func main() {
 
 	// gRPC
 	if apiType&GRPC != 0 {
-		listener, err := net.Listen("tcp", config.GetString("apiType.grpc.address"))
+		grpcAddress := config.GetString("apiType.grpc.address")
+		listener, err := net.Listen("tcp", grpcAddress)
 		if err != nil {
 			log.Fatalf("failed to listen: %v", err)
 		}

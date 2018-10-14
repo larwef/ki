@@ -14,21 +14,43 @@ func TestConfig_FromEnv(t *testing.T) {
 	os.Setenv("var3", "4.5")
 	os.Setenv("var4", "true")
 
-	FromEnv()
+	ReadEnv()
 
-	test.AssertEqual(t, GetString("var1"), "someString")
-	test.AssertEqual(t, GetInt("var2"), 5)
-	test.AssertEqual(t, GetFloat("var3"), 4.5)
-	test.AssertEqual(t, GetBool("var4", false), true)
+	res1 := GetString("var1")
+	test.AssertEqual(t, res1, "someString")
+
+	res2, err := GetInt("var2")
+	test.AssertNotError(t, err)
+	test.AssertEqual(t, res2, 5)
+
+	res3, err := GetFloat("var3")
+	test.AssertNotError(t, err)
+	test.AssertEqual(t, res3, 4.5)
+
+	res4, err := GetBool("var4", false)
+	test.AssertNotError(t, err)
+	test.AssertEqual(t, res4, true)
+
 }
 
 func TestConfig_FromPropertyFile(t *testing.T) {
-	FromPorpertyFile(testDataFolder + "test.properties")
+	ReadPorpertyFile(testDataFolder + "test.properties")
 
-	test.AssertEqual(t, GetString("var1"), "someOtherString")
-	test.AssertEqual(t, GetInt("var2"), 4)
-	test.AssertEqual(t, GetFloat("var3"), 3.5)
-	test.AssertEqual(t, GetBool("var4", true), false)
+	res1 := GetString("var1")
+	test.AssertEqual(t, res1, "someOtherString")
+
+	res2, err := GetInt("var2")
+	test.AssertNotError(t, err)
+	test.AssertEqual(t, res2, 4)
+
+	res3, err := GetFloat("var3")
+	test.AssertNotError(t, err)
+	test.AssertEqual(t, res3, 3.5)
+
+	res4, err := GetBool("var4", true)
+	test.AssertNotError(t, err)
+	test.AssertEqual(t, res4, false)
+
 }
 
 func TestConfig_PropertyOverwrite(t *testing.T) {
@@ -37,11 +59,22 @@ func TestConfig_PropertyOverwrite(t *testing.T) {
 	os.Setenv("var3", "4.5")
 	os.Setenv("var4", "true")
 
-	FromPorpertyFile(testDataFolder + "test.properties")
-	FromEnv()
+	ReadPorpertyFile(testDataFolder + "test.properties")
+	ReadEnv()
 
-	test.AssertEqual(t, GetString("var1"), "someString")
-	test.AssertEqual(t, GetInt("var2"), 5)
-	test.AssertEqual(t, GetFloat("var3"), 4.5)
-	test.AssertEqual(t, GetBool("var4", false), true)
+	res1 := GetString("var1")
+	test.AssertEqual(t, res1, "someString")
+
+	res2, err := GetInt("var2")
+	test.AssertNotError(t, err)
+	test.AssertEqual(t, res2, 5)
+
+	res3, err := GetFloat("var3")
+	test.AssertNotError(t, err)
+	test.AssertEqual(t, res3, 4.5)
+
+	res4, err := GetBool("var4", false)
+	test.AssertNotError(t, err)
+	test.AssertEqual(t, res4, true)
+
 }
