@@ -1,5 +1,5 @@
 TARGET=target
-VERSION=v0.0.5
+VERSION=v0.0.6
 
 all: test build-linux build-mac build-windows
 
@@ -32,7 +32,7 @@ build-windows:
 	GOOS=windows go build -ldflags "-X main.Version=$(VERSION)" -o $(TARGET)/windows/app cmd/main.go
 	zip -j $(TARGET)/deployment-windows.zip $(TARGET)/windows/app
 
-release: test
+release: test build-linux build-mac build-windows
 	git tag -a $(VERSION) -m "Release $(VERSION)"
 	git push origin $(VERSION)
 
