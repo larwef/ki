@@ -1,5 +1,5 @@
 TARGET=target
-VERSION=v0.0.3
+VERSION=v0.0.4
 
 all: test build-linux build-mac build-windows
 
@@ -34,6 +34,7 @@ build-windows:
 
 release: test
 	git tag -a $(VERSION) -m "Release $(VERSION)"
+	git push origin $(VERSION)
 
 proto:
 	protoc -I internal/http/grpc/ internal/http/grpc/*.proto --go_out=plugins=grpc:internal/http/grpc
