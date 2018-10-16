@@ -2,27 +2,56 @@ package config
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
 	"sync"
 )
 
+// ErrorHandling defines how Config behaves on and error.
+type ErrorHandling int
+
+// These constants determines error behaviour for Config.
+const (
+	ReturnError ErrorHandling = iota // Return a descriptive error.
+	ExitOnError                      // Call os.Exit(2).
+)
+
+// MissingPropertyError is used when calling a getter with required = true and the property is missing.
+type MissingPropertyError string
+
+func (m MissingPropertyError) Error() string {
+	return fmt.Sprintf("Property %q is missing", m)
+}
+
 // Predefined Config
-var std = New()
+var std = New(ReturnError)
 
 // Config object holds configuration properties. All properties are saved as strings as they are strings in env and file form.
 // Casting is done by access functions
 type Config struct {
-	mu         sync.RWMutex
-	properties map[string]string
+	mu            sync.RWMutex
+	properties    map[string]string
+	errorhandling ErrorHandling
 }
 
 // New creates a new Config object
-func New() *Config {
+func New(errorHandling ErrorHandling) *Config {
 	return &Config{
-		properties: make(map[string]string),
+		properties:    make(map[string]string),
+		errorhandling: errorHandling,
 	}
+}
+
+// SetErrorhandling sets the error behaviour on Config object
+func (c *Config) SetErrorhandling(errorHandling ErrorHandling) {
+	c.errorhandling = errorHandling
+}
+
+// SetErrorhandling calls SetErrorhandling on the standard Config object.
+func SetErrorhandling(errorHandling ErrorHandling) {
+	std.SetErrorhandling(errorHandling)
 }
 
 // ReadEnv reads properties from environment variables into the Config object.
@@ -48,7 +77,7 @@ func (c *Config) ReadPropertyFile(filepath string) error {
 
 	file, err := os.Open(filepath)
 	if err != nil {
-		return err
+		return c.handleError(err)
 	}
 	defer file.Close()
 
@@ -64,7 +93,7 @@ func (c *Config) ReadPropertyFile(filepath string) error {
 		c.properties[pair[0]] = pair[1]
 	}
 
-	return scanner.Err()
+	return c.handleError(scanner.Err())
 }
 
 // ReadPorpertyFile calls ReadPorpertyFile on the standard Config object
@@ -73,58 +102,101 @@ func ReadPorpertyFile(filepath string) {
 }
 
 // GetString gets a property and casts it to a string.
-func (c *Config) GetString(prop string) string {
+func (c *Config) GetString(prop string, required bool) (string, error) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
-	return c.properties[prop]
+	val, exists := c.properties[prop]
+	if required && !exists {
+		return val, c.handleError(MissingPropertyError(prop))
+	}
+
+	return val, nil
 }
 
 // GetString calls GetString on the standard Config object
-func GetString(prop string) string {
-	return std.GetString(prop)
+func GetString(prop string, required bool) (string, error) {
+	return std.GetString(prop, required)
 }
 
 // GetInt gets a property and casts it to an int.
-func (c *Config) GetInt(prop string) (int, error) {
+func (c *Config) GetInt(prop string, required bool) (int, error) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
-	return strconv.Atoi(c.properties[prop])
+	var i int
+	val, exists := c.properties[prop]
+	if required && !exists {
+		return i, c.handleError(MissingPropertyError(prop))
+	}
+
+	if !exists {
+		return i, nil
+	}
+
+	i, err := strconv.Atoi(val)
+	return i, c.handleError(err)
 }
 
 // GetInt calls GetInt on the standard Config object
-func GetInt(prop string) (int, error) {
-	return std.GetInt(prop)
+func GetInt(prop string, required bool) (int, error) {
+	return std.GetInt(prop, required)
 }
 
 // GetFloat gets a property and casts it to a float
-func (c *Config) GetFloat(prop string) (float64, error) {
+func (c *Config) GetFloat(prop string, required bool) (float64, error) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
-	return strconv.ParseFloat(c.properties[prop], 64)
+	var f float64
+	val, exists := c.properties[prop]
+	if required && !exists {
+		return f, c.handleError(MissingPropertyError(prop))
+	}
+
+	if !exists {
+		return f, nil
+	}
+
+	f, err := strconv.ParseFloat(val, 64)
+	return f, c.handleError(err)
 }
 
 // GetFloat calls GetFloat on the standard Config object
-func GetFloat(prop string) (float64, error) {
-	return std.GetFloat(prop)
+func GetFloat(prop string, required bool) (float64, error) {
+	return std.GetFloat(prop, required)
 }
 
 // GetBool gets a property and casts it to a bool
-func (c *Config) GetBool(prop string, defaul bool) (bool, error) {
+func (c *Config) GetBool(prop string, defaul bool, required bool) (bool, error) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
-	s, exists := c.properties[prop]
+	val, exists := c.properties[prop]
+	if required && !exists {
+		return defaul, c.handleError(MissingPropertyError(prop))
+	}
+
 	if !exists {
 		return defaul, nil
 	}
 
-	return strconv.ParseBool(s)
+	b, err := strconv.ParseBool(val)
+	return b, c.handleError(err)
 }
 
 // GetBool calls GetBool on the standard Config object
-func GetBool(prop string, defaul bool) (bool, error) {
-	return std.GetBool(prop, defaul)
+func GetBool(prop string, defaul bool, required bool) (bool, error) {
+	return std.GetBool(prop, defaul, required)
+}
+
+func (c *Config) handleError(err error) error {
+	switch c.errorhandling {
+	case ReturnError:
+		return err
+	case ExitOnError:
+		os.Exit(2)
+	}
+
+	return nil
 }

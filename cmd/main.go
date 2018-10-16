@@ -59,19 +59,19 @@ func main() {
 
 	// Setting bits since we want to be able to run multiple api types
 	var apiType APIType
-	crudEnabled, _ := config.GetBool("apiType.crud.enabled", false)
+	crudEnabled, _ := config.GetBool("apiType.crud.enabled", false, false)
 	if crudEnabled {
 		apiType = apiType | CRUD
 	}
 
-	grpcEnabled, _ := config.GetBool("apiType.grpc.enabled", false)
+	grpcEnabled, _ := config.GetBool("apiType.grpc.enabled", false, false)
 	if grpcEnabled {
 		apiType = apiType | GRPC
 	}
 
 	var add adding.Service
 	var lst listing.Service
-	persistenceType := config.GetString("persistence.type")
+	persistenceType, _ := config.GetString("persistence.type", true)
 	switch PersistenceType(persistenceType) {
 	case Memory:
 		repo := memory.NewRepository()
@@ -80,7 +80,7 @@ func main() {
 		log.Println("Using in memory storage")
 		break
 	case JSON:
-		persistenceLocation := config.GetString("persistence.location")
+		persistenceLocation, _ := config.GetString("persistence.location", true)
 		repo := local.NewRepository(persistenceLocation)
 		add = adding.NewService(repo)
 		lst = listing.NewService(repo)
@@ -93,14 +93,14 @@ func main() {
 	var tlsConfig *tls.Config
 	if !*disableTLS {
 
-		acmeDirectoryURL := config.GetString("tls.acme.directoryUrl")
+		acmeDirectoryURL, _ := config.GetString("tls.acme.directoryUrl", false)
 		acmeClient := &acme.Client{
 			DirectoryURL: acmeDirectoryURL,
 		}
 
-		certCache := config.GetString("tls.acme.certCache")
-		acmeHost := config.GetString("tls.acme.host")
-		acmeClientEmail := config.GetString("tls.acme.client.email")
+		certCache, _ := config.GetString("tls.acme.certCache", true)
+		acmeHost, _ := config.GetString("tls.acme.host", false)
+		acmeClientEmail, _ := config.GetString("tls.acme.client.email", false)
 		m := &autocert.Manager{
 			Prompt:     autocert.AcceptTOS,
 			Cache:      autocert.DirCache(certCache),
@@ -127,7 +127,7 @@ func main() {
 
 	// CRUD
 	if apiType&CRUD != 0 {
-		crudAddress := config.GetString("apiType.crud.address")
+		crudAddress, _ := config.GetString("apiType.crud.address", true)
 		crudServer := &crud.Server{
 			Server: &http.Server{
 				Addr:         crudAddress,
@@ -143,7 +143,7 @@ func main() {
 
 	// gRPC
 	if apiType&GRPC != 0 {
-		grpcAddress := config.GetString("apiType.grpc.address")
+		grpcAddress, _ := config.GetString("apiType.grpc.address", true)
 		listener, err := net.Listen("tcp", grpcAddress)
 		if err != nil {
 			log.Fatalf("failed to listen: %v", err)
