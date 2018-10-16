@@ -32,6 +32,9 @@ build-windows:
 	GOOS=windows go build -ldflags "-X main.Version=$(VERSION)" -o $(TARGET)/windows/app cmd/main.go
 	zip -j $(TARGET)/deployment-windows.zip $(TARGET)/windows/app
 
+release: test
+	git tag -a $(VERSION) -m "Release $(VERSION)"
+
 proto:
 	protoc -I internal/http/grpc/ internal/http/grpc/*.proto --go_out=plugins=grpc:internal/http/grpc
 
