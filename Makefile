@@ -1,5 +1,5 @@
 TARGET=target
-VERSION=v0.0.4
+VERSION=v0.0.5
 
 all: test build-linux build-mac build-windows
 
