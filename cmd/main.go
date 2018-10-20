@@ -51,11 +51,7 @@ func main() {
 	propertyFile := flag.String("property-file", "", "Set if properties should be gotten from file")
 	flag.Parse()
 
-	// ReadEnv will overwrite the properties from file
-	if *propertyFile != "" {
-		config.ReadPorpertyFile(*propertyFile)
-	}
-	config.ReadEnv()
+	config.Init(true, *propertyFile)
 
 	// Setting bits since we want to be able to run multiple api types
 	var apiType APIType

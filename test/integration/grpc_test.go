@@ -4,21 +4,18 @@ package integration
 
 import (
 	"context"
-	"crypto/tls"
-	"crypto/x509"
 	"encoding/json"
 	"github.com/larwef/ki/internal/adding"
 	"github.com/larwef/ki/internal/http/grpc"
 	"github.com/larwef/ki/internal/listing"
 	"github.com/larwef/ki/test"
 	goGrpc "google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
 	"io/ioutil"
 	"strings"
 	"testing"
 )
 
-var grpcAddress = "tlstest.wefald.no:8081"
+var grpcAddress = "localhost:8081"
 var grpcTestDataFolder = "../testdata/"
 
 // Integration tests needs a fresh instance running locally to work. The easiest is to run the ./test-docker.sh script.
@@ -27,14 +24,14 @@ func getConnection(t *testing.T) *goGrpc.ClientConn {
 	// Set up a connection to the server.
 
 	// Use this if testing live with TLS
-	rootCAs, _ := x509.SystemCertPool()
-	tlsConfig := &tls.Config{
-		RootCAs: rootCAs,
-	}
-	creds := credentials.NewTLS(tlsConfig)
-	conn, err := goGrpc.Dial(grpcAddress, goGrpc.WithTransportCredentials(creds))
+	//rootCAs, _ := x509.SystemCertPool()
+	//tlsConfig := &tls.Config{
+	//	RootCAs: rootCAs,
+	//}
+	//creds := credentials.NewTLS(tlsConfig)
+	//conn, err := goGrpc.Dial(grpcAddress, goGrpc.WithTransportCredentials(creds))
 
-	//conn, err := goGrpc.Dial(grpcAddress, goGrpc.WithInsecure())
+	conn, err := goGrpc.Dial(grpcAddress, goGrpc.WithInsecure())
 	if err != nil {
 		t.Fatalf("did not connect: %v", err)
 	}

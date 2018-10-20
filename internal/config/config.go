@@ -31,17 +31,22 @@ var std = New(ReturnError)
 // Config object holds configuration properties. All properties are saved as strings as they are strings in env and file form.
 // Casting is done by access functions
 type Config struct {
-	mu            sync.RWMutex
 	properties    map[string]string
 	errorhandling ErrorHandling
+	initOnce      sync.Once
+	waitForInit   sync.WaitGroup
 }
 
 // New creates a new Config object
 func New(errorHandling ErrorHandling) *Config {
-	return &Config{
+	conf := &Config{
 		properties:    make(map[string]string),
 		errorhandling: errorHandling,
 	}
+
+	conf.waitForInit.Add(1)
+
+	return conf
 }
 
 // SetErrorhandling sets the error behaviour on Config object
@@ -54,27 +59,47 @@ func SetErrorhandling(errorHandling ErrorHandling) {
 	std.SetErrorhandling(errorHandling)
 }
 
-// ReadEnv reads properties from environment variables into the Config object.
-func (c *Config) ReadEnv() {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+// Init reads properties from several files and the environment if set to true. Properties with the same name will be overwritten
+// by following files and environment variables will be read last. Is only called once. Will return on first error.
+func (c *Config) Init(readEnv bool, paths ...string) error {
+	var err error
+	init := func() {
+		defer c.waitForInit.Done()
+		for _, path := range paths {
+			if path == "" {
+				continue
+			}
+			if e := c.handleError(c.readPropertyFile(path)); e != nil {
+				err = c.handleError(e)
+				return
+			}
+		}
 
+		if readEnv {
+			c.readEnv()
+		}
+	}
+
+	c.initOnce.Do(init)
+
+	return err
+}
+
+// Init calls Init on the standard config object.
+func Init(readEnv bool, paths ...string) error {
+	return std.Init(readEnv, paths...)
+}
+
+// readEnv reads properties from environment variables into the Config object.
+func (c *Config) readEnv() {
 	for _, envVar := range os.Environ() {
 		pair := strings.Split(envVar, "=")
 		c.properties[pair[0]] = pair[1]
 	}
 }
 
-// ReadEnv calls ReadEnv on the standard Config object
-func ReadEnv() {
-	std.ReadEnv()
-}
-
-// ReadPropertyFile reads properties from a .properties file into the Config object.
-func (c *Config) ReadPropertyFile(filepath string) error {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
+// readPropertyFile reads properties from a .properties file into the Config object.
+func (c *Config) readPropertyFile(filepath string) error {
 	file, err := os.Open(filepath)
 	if err != nil {
 		return c.handleError(err)
@@ -96,15 +121,9 @@ func (c *Config) ReadPropertyFile(filepath string) error {
 	return c.handleError(scanner.Err())
 }
 
-// ReadPorpertyFile calls ReadPorpertyFile on the standard Config object
-func ReadPorpertyFile(filepath string) {
-	std.ReadPropertyFile(filepath)
-}
-
 // GetString gets a property and casts it to a string.
 func (c *Config) GetString(prop string, required bool) (string, error) {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
+	c.waitForInit.Wait()
 
 	val, exists := c.properties[prop]
 	if required && !exists {
@@ -121,8 +140,7 @@ func GetString(prop string, required bool) (string, error) {
 
 // GetInt gets a property and casts it to an int.
 func (c *Config) GetInt(prop string, required bool) (int, error) {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
+	c.waitForInit.Wait()
 
 	var i int
 	val, exists := c.properties[prop]
@@ -145,8 +163,7 @@ func GetInt(prop string, required bool) (int, error) {
 
 // GetFloat gets a property and casts it to a float
 func (c *Config) GetFloat(prop string, required bool) (float64, error) {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
+	c.waitForInit.Wait()
 
 	var f float64
 	val, exists := c.properties[prop]
@@ -169,8 +186,7 @@ func GetFloat(prop string, required bool) (float64, error) {
 
 // GetBool gets a property and casts it to a bool
 func (c *Config) GetBool(prop string, defaul bool, required bool) (bool, error) {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
+	c.waitForInit.Wait()
 
 	val, exists := c.properties[prop]
 	if required && !exists {

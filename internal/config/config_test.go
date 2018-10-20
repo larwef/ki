@@ -8,6 +8,47 @@ import (
 
 var testDataFolder = "../../test/testdata/"
 
+func TestConfig_InitCalledOnce(t *testing.T) {
+	os.Setenv("var1", "someString")
+	os.Setenv("var2", "5")
+	os.Setenv("var3", "4.5")
+	os.Setenv("var4", "true")
+
+	conf := New(ReturnError)
+	err := conf.Init(true)
+	test.AssertNotError(t, err)
+
+	os.Setenv("var1", "someOtherString")
+	os.Setenv("var2", "6")
+	os.Setenv("var3", "5.5")
+	os.Setenv("var4", "false")
+
+	err = conf.Init(true)
+	test.AssertNotError(t, err)
+
+	res1, err := conf.GetString("var1", true)
+	test.AssertNotError(t, err)
+	test.AssertEqual(t, res1, "someString")
+
+	res2, err := conf.GetInt("var2", true)
+	test.AssertNotError(t, err)
+	test.AssertEqual(t, res2, 5)
+
+	res3, err := conf.GetFloat("var3", true)
+	test.AssertNotError(t, err)
+	test.AssertEqual(t, res3, 4.5)
+
+	res4, err := conf.GetBool("var4", false, true)
+	test.AssertNotError(t, err)
+	test.AssertEqual(t, res4, true)
+}
+
+func TestConfig_ErrorOnInit(t *testing.T) {
+	conf := New(ReturnError)
+	err := conf.Init(false, "doesntExist")
+	test.AssertIsError(t, err)
+}
+
 func TestConfig_FromEnv(t *testing.T) {
 	os.Setenv("var1", "someString")
 	os.Setenv("var2", "5")
@@ -15,7 +56,8 @@ func TestConfig_FromEnv(t *testing.T) {
 	os.Setenv("var4", "true")
 
 	conf := New(ReturnError)
-	conf.ReadEnv()
+	err := conf.Init(true)
+	test.AssertNotError(t, err)
 
 	res1, err := conf.GetString("var1", true)
 	test.AssertNotError(t, err)
@@ -37,7 +79,8 @@ func TestConfig_FromEnv(t *testing.T) {
 
 func TestConfig_FromPropertyFile(t *testing.T) {
 	conf := New(ReturnError)
-	conf.ReadPropertyFile(testDataFolder + "test.properties")
+	err := conf.Init(false, testDataFolder+"test.properties")
+	test.AssertNotError(t, err)
 
 	res1, err := conf.GetString("var1", true)
 	test.AssertNotError(t, err)
@@ -64,8 +107,8 @@ func TestConfig_PropertyOverwrite(t *testing.T) {
 	os.Setenv("var4", "true")
 
 	conf := New(ReturnError)
-	conf.ReadPropertyFile(testDataFolder + "test.properties")
-	conf.ReadEnv()
+	err := conf.Init(true, testDataFolder+"test.properties")
+	test.AssertNotError(t, err)
 
 	res1, err := conf.GetString("var1", true)
 	test.AssertNotError(t, err)
@@ -86,6 +129,9 @@ func TestConfig_PropertyOverwrite(t *testing.T) {
 
 func TestConfig_MissingProperty(t *testing.T) {
 	conf := New(ReturnError)
+
+	err := conf.Init(false)
+	test.AssertNotError(t, err)
 
 	res1, err := conf.GetString("var1", true)
 	test.AssertEqual(t, res1, "")
@@ -108,7 +154,8 @@ func TestConfig_GetString(t *testing.T) {
 	os.Setenv("var1", "someString")
 
 	conf := New(ReturnError)
-	conf.ReadEnv()
+	err := conf.Init(true)
+	test.AssertNotError(t, err)
 
 	for _, tt := range stringPropTest {
 		actual, err := conf.GetString(tt.prop, tt.required)
@@ -133,7 +180,8 @@ func TestConfig_GetInt(t *testing.T) {
 	os.Setenv("var1", "5")
 
 	conf := New(ReturnError)
-	conf.ReadEnv()
+	err := conf.Init(true)
+	test.AssertNotError(t, err)
 
 	for _, tt := range intPropTest {
 		actual, err := conf.GetInt(tt.prop, tt.required)
@@ -161,7 +209,8 @@ func TestConfig_GetFloat(t *testing.T) {
 	os.Setenv("var2", "5.5")
 
 	conf := New(ReturnError)
-	conf.ReadEnv()
+	err := conf.Init(true)
+	test.AssertNotError(t, err)
 
 	for _, tt := range floatPropTest {
 		actual, err := conf.GetFloat(tt.prop, tt.required)
@@ -198,7 +247,8 @@ func TestConfig_GetBool(t *testing.T) {
 	os.Setenv("var2", "true")
 
 	conf := New(ReturnError)
-	conf.ReadEnv()
+	err := conf.Init(true)
+	test.AssertNotError(t, err)
 
 	for _, tt := range boolPropTest {
 		actual, err := conf.GetBool(tt.prop, tt.defaul, tt.required)

@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	crudAddress        = "https://tlstest.wefald.no:8080"
+	crudAddress        = "http://localhost:8080"
 	crudTestDataFolder = "../testdata/"
 )
 
