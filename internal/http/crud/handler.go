@@ -3,6 +3,7 @@ package crud
 import (
 	"encoding/json"
 	"github.com/larwef/ki/internal/adding"
+	"github.com/larwef/ki/internal/http/auth"
 	"github.com/larwef/ki/internal/listing"
 	"log"
 	"net/http"
@@ -20,21 +21,23 @@ const (
 
 // Handler handles is the entry point for requests and handles routing and processing
 type Handler struct {
-	adding  adding.Service
-	listing listing.Service
+	userpool *auth.UserPool
+	adding   adding.Service
+	listing  listing.Service
 }
 
-// NewHandler returns a new Handler
-func NewHandler(adding adding.Service, listing listing.Service) *Handler {
+func NewHandler(userPool *auth.UserPool, add adding.Service, list listing.Service) *Handler {
 	return &Handler{
-		adding:  adding,
-		listing: listing,
+		userpool: userPool,
+		adding:   add,
+		listing:  list,
 	}
 }
 
 func (handler *Handler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	newHandlerChain(emptyHandler()).
 		add(inOutLog).
+		add(handler.authenticate).
 		add(setCommonHeaders).
 		add(handler.route).
 		ServeHTTP(res, req)
@@ -58,6 +61,24 @@ func (handler *Handler) route(h http.Handler) http.Handler {
 			log.Printf("Invalid path %q called\n", req.URL.Path)
 			http.Error(res, "Not Found", http.StatusNotFound)
 		}
+	})
+}
+
+func (handler *Handler) authenticate(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+		username, password, ok := req.BasicAuth()
+		if !ok {
+			http.Error(res, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		_, err := handler.userpool.Authenticate(username, password)
+		if err != nil {
+			http.Error(res, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		h.ServeHTTP(res, req)
 	})
 }
 

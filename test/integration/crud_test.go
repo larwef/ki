@@ -196,6 +196,7 @@ func (c *TestClient) getRequest(path string, method string, requestObj interface
 	if err != nil {
 		return request, err
 	}
+	request.SetBasicAuth("admin", "adminPassword123")
 
 	return request, err
 }
