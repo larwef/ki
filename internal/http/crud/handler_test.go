@@ -34,17 +34,17 @@ func setup(t *testing.T) (*Handler, *memory.Repository) {
 		Role:         auth.CLIENT,
 	}
 
-	pool := auth.NewUserPool()
-	err = pool.RegisterUser(admin)
+	basic := auth.NewBasic()
+	err = basic.RegisterUser(admin)
 	test.AssertNotError(t, err)
-	err = pool.RegisterUser(client)
+	err = basic.RegisterUser(client)
 	test.AssertNotError(t, err)
 
 	repository := memory.NewRepository()
 	return &Handler{
-		userpool: pool,
-		adding:   adding.NewService(repository),
-		listing:  listing.NewService(repository),
+		aut:     basic,
+		adding:  adding.NewService(repository),
+		listing: listing.NewService(repository),
 	}, repository
 }
 

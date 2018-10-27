@@ -19,18 +19,19 @@ const (
 	contentType = "application/json; charset=utf-8"
 )
 
-// Handler handles is the entry point for requests and handles routing and processing
+// Handler handles is the entry point for requests and handles routing and processing.
 type Handler struct {
-	userpool *auth.UserPool
-	adding   adding.Service
-	listing  listing.Service
+	aut     auth.Auth
+	adding  adding.Service
+	listing listing.Service
 }
 
-func NewHandler(userPool *auth.UserPool, add adding.Service, list listing.Service) *Handler {
+// NewHandler returns a new Handler object.
+func NewHandler(aut auth.Auth, add adding.Service, list listing.Service) *Handler {
 	return &Handler{
-		userpool: userPool,
-		adding:   add,
-		listing:  list,
+		aut:     aut,
+		adding:  add,
+		listing: list,
 	}
 }
 
@@ -66,13 +67,7 @@ func (handler *Handler) route(h http.Handler) http.Handler {
 
 func (handler *Handler) authenticate(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		username, password, ok := req.BasicAuth()
-		if !ok {
-			http.Error(res, "Unauthorized", http.StatusUnauthorized)
-			return
-		}
-
-		_, err := handler.userpool.Authenticate(username, password)
+		_, err := handler.aut.Authenticate(req.Header.Get("Authorization"))
 		if err != nil {
 			http.Error(res, "Unauthorized", http.StatusUnauthorized)
 			return

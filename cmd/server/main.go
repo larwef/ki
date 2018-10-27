@@ -3,37 +3,22 @@ package main
 import (
 	"crypto/tls"
 	"flag"
-	"github.com/larwef/ki/internal/adding"
+	"github.com/larwef/ki/internal/app"
 	"github.com/larwef/ki/internal/config"
 	"github.com/larwef/ki/internal/http/auth"
-	"github.com/larwef/ki/internal/http/crud"
-	"github.com/larwef/ki/internal/http/grpc"
-	"github.com/larwef/ki/internal/listing"
+	"github.com/larwef/ki/internal/repository"
 	"github.com/larwef/ki/internal/repository/local"
 	"github.com/larwef/ki/internal/repository/memory"
-	"github.com/larwef/ki/internal/runner"
 	"golang.org/x/crypto/acme"
 	"golang.org/x/crypto/acme/autocert"
-	goGrpc "google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
 	"log"
-	"net"
 	"net/http"
-	"time"
 )
-
-// APIType defines available api types
-type APIType int
 
 // PersistenceType defines available storage types
 type PersistenceType string
 
 const (
-	// CRUD uses json over http
-	CRUD APIType = 1 << iota
-	// GRPC uses rpc with protobuf
-	GRPC
-
 	// Memory will store data in memory
 	Memory PersistenceType = "memory"
 	// JSON will store data in JSON files saved on disk
@@ -55,32 +40,27 @@ func main() {
 	config.Init(true, *propertyFile)
 
 	// Setting bits since we want to be able to run multiple api types
-	var apiType APIType
+	var apiType app.APIType
 	crudEnabled, _ := config.GetBool("apiType.crud.enabled", false, false)
 	if crudEnabled {
-		apiType = apiType | CRUD
+		apiType = apiType | app.CRUD
 	}
 
 	grpcEnabled, _ := config.GetBool("apiType.grpc.enabled", false, false)
 	if grpcEnabled {
-		apiType = apiType | GRPC
+		apiType = apiType | app.GRPC
 	}
 
-	var add adding.Service
-	var lst listing.Service
 	persistenceType, _ := config.GetString("persistence.type", true)
+	var repo repository.Repository
 	switch PersistenceType(persistenceType) {
 	case Memory:
-		repo := memory.NewRepository()
-		add = adding.NewService(repo)
-		lst = listing.NewService(repo)
+		repo = memory.NewRepository()
 		log.Println("Using in memory storage")
 		break
 	case JSON:
 		persistenceLocation, _ := config.GetString("persistence.location", true)
-		repo := local.NewRepository(persistenceLocation)
-		add = adding.NewService(repo)
-		lst = listing.NewService(repo)
+		repo = local.NewRepository(persistenceLocation)
 		log.Println("Using JSON storage")
 		break
 	default:
@@ -91,65 +71,18 @@ func main() {
 	if !*disableTLS {
 		certManager := getAutoCertManager()
 		tlsConfig = getTLSConfig(certManager)
-
-		go func() {
-			// Listens for challenges from Let's encrypt
-			if err := http.ListenAndServe(":http", certManager.HTTPHandler(nil)); err != nil {
-				// TODO: If this listener fails the app will no longer be able to get new certificates from ACME provider. But
-				// TODO as long as theres a valid cached certificate this shouldnt be a problem
-				log.Fatalf("Error listening to port http: %v", err)
-			}
-		}()
 	} else {
 		log.Println("TLS disabled")
 	}
 
-	rnr := runner.NewRunner()
-
-	pool := getUserPool()
-
-	// CRUD
-	if apiType&CRUD != 0 {
-		crudAddress, _ := config.GetString("apiType.crud.address", true)
-		crudServer := &crud.Server{
-			Server: &http.Server{
-				Addr:         crudAddress,
-				Handler:      crud.NewHandler(pool, add, lst),
-				ReadTimeout:  15 * time.Second,
-				WriteTimeout: 30 * time.Second,
-				IdleTimeout:  60 * time.Second,
-				TLSConfig:    tlsConfig,
-			},
-		}
-		rnr.Add(crudServer)
+	options := []app.Option{
+		app.TLSConfig(tlsConfig),
+		app.Repository(repo),
+		app.APITypes(apiType),
+		app.Auth(getBasicAuth()),
 	}
 
-	// gRPC
-	if apiType&GRPC != 0 {
-		grpcAddress, _ := config.GetString("apiType.grpc.address", true)
-		listener, err := net.Listen("tcp", grpcAddress)
-		if err != nil {
-			log.Fatalf("failed to listen: %v", err)
-		}
-
-		var opts []goGrpc.ServerOption
-		opts = append(opts, goGrpc.UnaryInterceptor(grpc.InOutLoggingUnaryInterceptor))
-
-		if tlsConfig != nil {
-			log.Println("Enabling tls for gRPC")
-			opts = append(opts, goGrpc.Creds(credentials.NewTLS(tlsConfig)))
-		}
-
-		grpcServer := &grpc.Server{
-			Server:   goGrpc.NewServer(opts...),
-			Listener: listener,
-			Handler:  grpc.NewHandler(add, lst),
-		}
-
-		rnr.Add(grpcServer)
-	}
-
-	rnr.Run()
+	app.NewApp(options...).Run()
 
 	log.Println("Exiting application.")
 }
@@ -168,19 +101,30 @@ func getAutoCertManager() *autocert.Manager {
 	acmeHost, _ := config.GetString("tls.acme.host", false)
 	acmeClientEmail, _ := config.GetString("tls.acme.client.email", false)
 
-	return &autocert.Manager{
+	certManager := &autocert.Manager{
 		Prompt:     autocert.AcceptTOS,
 		Cache:      autocert.DirCache(certCache),
 		HostPolicy: autocert.HostWhitelist(acmeHost),
 		Client:     acmeClient,
 		Email:      acmeClientEmail,
 	}
+
+	go func() {
+		// Listens for challenges from ACME provider
+		if err := http.ListenAndServe(":http", certManager.HTTPHandler(nil)); err != nil {
+			// TODO: If this listener fails the app will no longer be able to get new certificates from ACME provider. But
+			// TODO as long as theres a valid cached certificate this shouldnt be a problem
+			log.Fatalf("Error listening to port http: %v", err)
+		}
+	}()
+
+	return certManager
 }
 
-func getUserPool() *auth.UserPool {
-	var pool *auth.UserPool
+func getBasicAuth() *auth.Basic {
+	var basic *auth.Basic
 	if basiAuthEnabled, err := config.GetBool("auth.basic.enabled", true, false); basiAuthEnabled && err == nil {
-		pool = auth.NewUserPool()
+		basic = auth.NewBasic()
 		adminUsername, _ := config.GetString("auth.admin.username", true)
 		adminPasswordHash, _ := config.GetString("auth.admin.password", true)
 
@@ -190,8 +134,8 @@ func getUserPool() *auth.UserPool {
 			Role:         auth.ADMIN,
 		}
 
-		if err := pool.RegisterUser(admin); err != nil {
-			log.Fatalf("Error adding admin user to user pool: %v", err)
+		if err := basic.RegisterUser(admin); err != nil {
+			log.Fatalf("Error adding admin user to user basic: %v", err)
 		}
 
 		clientUsername, _ := config.GetString("auth.client.username", true)
@@ -203,10 +147,10 @@ func getUserPool() *auth.UserPool {
 			Role:         auth.CLIENT,
 		}
 
-		if err := pool.RegisterUser(client); err != nil {
-			log.Printf("Error adding client user to user pool: %v", err)
+		if err := basic.RegisterUser(client); err != nil {
+			log.Printf("Error adding client user to user basic: %v", err)
 		}
 	}
 
-	return pool
+	return basic
 }

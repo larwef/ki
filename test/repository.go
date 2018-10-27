@@ -3,18 +3,12 @@ package test
 import (
 	"github.com/larwef/ki/internal/adding"
 	"github.com/larwef/ki/internal/listing"
+	"github.com/larwef/ki/internal/repository"
 	"testing"
 )
 
-// Repo has to satisfy adding and listing repository. Used to make tests that can cover all (or at least several) implementations
-// of repository
-type Repo interface {
-	adding.Repository
-	listing.Repository
-}
-
 // StoreAndRetrieveGroup tests that a group object can be stored and subsequently retrieved
-func StoreAndRetrieveGroup(t *testing.T, repo Repo, cleanup func()) {
+func StoreAndRetrieveGroup(t *testing.T, repo repository.Repository, cleanup func()) {
 	defer cleanup()
 	grp := adding.Group{
 		ID: "someGroup",
@@ -29,7 +23,7 @@ func StoreAndRetrieveGroup(t *testing.T, repo Repo, cleanup func()) {
 }
 
 // StoreGroupAndNotOverWrite tests that when store group is called on an existing group it will not overwrite the existing group
-func StoreGroupAndNotOverWrite(t *testing.T, repo Repo, cleanup func()) {
+func StoreGroupAndNotOverWrite(t *testing.T, repo repository.Repository, cleanup func()) {
 	defer cleanup()
 
 	grp := adding.Group{
@@ -54,7 +48,7 @@ func StoreGroupAndNotOverWrite(t *testing.T, repo Repo, cleanup func()) {
 }
 
 // RetrieveGroupWhenGroupNotExist tests retrieving a group that doesnt exist
-func RetrieveGroupWhenGroupNotExist(t *testing.T, repo Repo, cleanup func()) {
+func RetrieveGroupWhenGroupNotExist(t *testing.T, repo repository.Repository, cleanup func()) {
 	defer cleanup()
 
 	grp := adding.Group{
@@ -69,7 +63,7 @@ func RetrieveGroupWhenGroupNotExist(t *testing.T, repo Repo, cleanup func()) {
 }
 
 // StoreAndRetrieveConfig tests storing and subsequently retrieving a Config
-func StoreAndRetrieveConfig(t *testing.T, repo Repo, cleanup func()) {
+func StoreAndRetrieveConfig(t *testing.T, repo repository.Repository, cleanup func()) {
 	defer cleanup()
 
 	grp := adding.Group{
@@ -93,7 +87,7 @@ func StoreAndRetrieveConfig(t *testing.T, repo Repo, cleanup func()) {
 }
 
 // StoreConfigNoDuplicateInGroup tests that when adding a group with the same id, the Group object wont have duplicates in its Config array
-func StoreConfigNoDuplicateInGroup(t *testing.T, repo Repo, cleanup func()) {
+func StoreConfigNoDuplicateInGroup(t *testing.T, repo repository.Repository, cleanup func()) {
 	defer cleanup()
 
 	grp := adding.Group{
@@ -133,7 +127,7 @@ func StoreConfigNoDuplicateInGroup(t *testing.T, repo Repo, cleanup func()) {
 }
 
 // StoreConfigWhenGroupNotExist tests storing a Config when the Group doesnt exist
-func StoreConfigWhenGroupNotExist(t *testing.T, repo Repo, cleanup func()) {
+func StoreConfigWhenGroupNotExist(t *testing.T, repo repository.Repository, cleanup func()) {
 	defer cleanup()
 
 	grp := adding.Group{
@@ -152,7 +146,7 @@ func StoreConfigWhenGroupNotExist(t *testing.T, repo Repo, cleanup func()) {
 }
 
 // RetrieveConfigWhenGroupNotExist tests retireving a Config with a non existing Group
-func RetrieveConfigWhenGroupNotExist(t *testing.T, repo Repo, cleanup func()) {
+func RetrieveConfigWhenGroupNotExist(t *testing.T, repo repository.Repository, cleanup func()) {
 	defer cleanup()
 
 	grp := adding.Group{
@@ -174,7 +168,7 @@ func RetrieveConfigWhenGroupNotExist(t *testing.T, repo Repo, cleanup func()) {
 }
 
 // RetrieveConfigWhenConfigNotExist tests retireving a non existing Config
-func RetrieveConfigWhenConfigNotExist(t *testing.T, repo Repo, cleanup func()) {
+func RetrieveConfigWhenConfigNotExist(t *testing.T, repo repository.Repository, cleanup func()) {
 	defer cleanup()
 
 	grp := adding.Group{

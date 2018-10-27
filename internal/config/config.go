@@ -29,7 +29,7 @@ func (m MissingPropertyError) Error() string {
 var std = New(ReturnError)
 
 // Config object holds configuration properties. All properties are saved as strings as they are strings in env and file form.
-// Casting is done by access functions
+// Casting is done by access functions. All getter functions will block until Init is run.
 type Config struct {
 	properties    map[string]string
 	errorhandling ErrorHandling
